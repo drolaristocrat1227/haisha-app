@@ -794,16 +794,19 @@ function initCardsResize() {
 const TR = { active: false, scrolling: false, timer: null, idx: -1, row: null, pointerId: -1, sx: 0, sy: 0, ly: 0, lastX: 0, lastY: 0, raf: null, spd: 0 };
 
 function trFindTarget(x, y, row) {
-  const rows = $('settingsBody').querySelectorAll('.tr-row');
+  const rows = Array.from($('settingsBody').querySelectorAll('.tr-row'));
   rows.forEach(r => r.classList.remove('drop-above', 'drop-below'));
-  const el = document.elementFromPoint(x, y);
-  if (el) {
-    const tr = el.closest('.tr-row');
-    if (tr && tr !== row) {
-      const r = tr.getBoundingClientRect();
-      if (y < r.top + r.height / 2) tr.classList.add('drop-above');
-      else tr.classList.add('drop-below');
-    }
+  // rows are in original layout positions; compare cursor Y directly to each row's rect
+  let closest = null, closestDist = Infinity;
+  rows.forEach(r => {
+    if (r === row) return;
+    const rect = r.getBoundingClientRect();
+    const dist = Math.abs(y - (rect.top + rect.height / 2));
+    if (dist < closestDist) { closestDist = dist; closest = { el: r, rect }; }
+  });
+  if (closest) {
+    if (y < closest.rect.top + closest.rect.height / 2) closest.el.classList.add('drop-above');
+    else closest.el.classList.add('drop-below');
   }
 }
 
@@ -855,7 +858,6 @@ function initRowReorder(row, idx, opts) {
       TR.active = true;
       handle.setPointerCapture(e.pointerId);
       row.classList.add('dragging-v');
-      row.style.pointerEvents = 'none'; // so elementFromPoint(x,y) in trFindTarget hits the row underneath, not this row
     }, 400);
   });
   handle.addEventListener('pointermove', e => {
@@ -887,7 +889,6 @@ function initRowReorder(row, idx, opts) {
     }
     row.classList.remove('dragging-v');
     row.style.transform = '';
-    row.style.pointerEvents = '';
     const rows = $('settingsBody').querySelectorAll('.tr-row');
     let targetIdx = -1, above = false;
     rows.forEach((r, i) => {
