@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="配車">
+<meta name="theme-color" content="#2bb89a">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>配車アプリ</title>
+<style>
+:root{
+  --bg:#eaf8f2; --surface:#ffffff; --surface-alt:#f4fbf8;
+  --text:#1c3b32; --text-soft:#3a6358; --text-faint:#4a6d62;
+  --border:#d8efe6; --border-soft:#cfe9df;
+  --primary:#2bb89a; --primary-dark:#239e84; --primary-tint:#e3f7f1;
+  --driver:#f0a93e; --driver-tint:#fdf0d6; --driver-border:#e8c97a;
+  --danger:#d6536d; --danger-tint:#fde8ea;
+  --guest:#a06bc4; --guest-tint:#f3eaf8;
+  --player:#e8915a; --player-tint:#fff1e6;
+  --shadow-card:0 2px 10px rgba(28,59,50,.08);
+  --shadow-float:0 10px 28px rgba(28,59,50,.2);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Yu Gothic UI','Meiryo',sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+input,button,textarea,select{font-family:inherit;font-size:inherit}
+button{cursor:pointer;border:none;background:none;outline:none}
+.screen{display:none;flex-direction:column;height:100dvh;width:100%;position:absolute;top:0;left:0;background:var(--bg);padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+.screen.active{display:flex}
+
+/* Section 1: Header */
+#sec-header{flex:0 0 auto;height:48px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 10px;background:var(--surface);border-bottom:1px solid var(--border);color:var(--text)}
+#sec-header .btn-reset{justify-self:start;background:var(--danger-tint);color:var(--danger);border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;white-space:nowrap}
+#sec-header .btn-reset:active{background:#f8d2da}
+#sec-header h2{font-size:15px;font-weight:700;text-align:center;letter-spacing:.5px;white-space:nowrap}
+#sec-header .btn-settings{justify-self:end;font-size:20px;padding:4px 2px;color:var(--text-soft);line-height:1}
+
+/* Title bar */
+#sec-title-bar{flex:0 0 auto;padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border)}
+#sec-title-bar .title-input{width:100%;border:1px solid var(--border-soft);border-radius:8px;padding:8px 10px;text-align:center;font-size:13px;font-weight:600;background:var(--bg);color:var(--text)}
+#sec-title-bar .title-input::placeholder{color:var(--text-faint);font-weight:400}
+
+/* Section 3: Vehicles */
+#sec-vehicles{flex:1 1 0;overflow-y:auto;padding:8px 10px;background:var(--bg);-webkit-overflow-scrolling:touch}
+.vehicle-block{background:var(--surface);border-radius:14px;margin-bottom:10px;box-shadow:var(--shadow-card);display:flex;overflow:hidden;transition:box-shadow .15s}
+.vehicle-main{flex:1;padding:9px 10px}
+.vehicle-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.vehicle-name{font-weight:700;font-size:13px;color:var(--text)}
+.vehicle-count{font-size:10.5px;color:var(--primary-dark);font-weight:700;background:var(--primary-tint);padding:2px 8px;border-radius:10px;white-space:nowrap}
+.vehicle-slots{display:flex;flex-wrap:wrap;gap:5px}
+.vehicle-slot{width:calc(25% - 4px);min-height:36px;border:1.5px dashed var(--border-soft);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-faint);background:var(--surface-alt);position:relative;transition:border-color .15s,background .15s,transform .1s;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:2px 3px;user-select:none;-webkit-user-select:none}
+.vehicle-slot.driver{background:var(--driver-tint);border-color:var(--driver-border)}
+.vehicle-slot.occupied{border-style:solid;border-color:var(--primary);background:var(--primary);color:#fff;font-weight:700;touch-action:none}
+.vehicle-slot.driver.occupied{background:var(--driver);border-color:var(--driver);color:#fff}
+.vehicle-slot.drop-hover{border-color:var(--primary-dark);background:var(--primary-tint);border-style:solid;transform:scale(1.04)}
+.vehicle-slot .slot-label{font-size:8.5px;color:#b0822a;position:absolute;top:1px;left:3px;font-weight:700}
+.vehicle-slot.occupied .slot-label{color:rgba(255,255,255,.85)}
+.vehicle-delete{flex:0 0 30px;display:flex;align-items:center;justify-content:center;background:var(--surface-alt);border-left:1px solid var(--border);writing-mode:vertical-rl;font-size:11px;color:var(--danger);font-weight:700;letter-spacing:2px}
+.vehicle-delete:active{background:var(--danger-tint)}
+.btn-add-vehicle{width:100%;padding:11px;border:2px dashed var(--border-soft);border-radius:12px;color:var(--text-soft);font-size:13px;background:var(--surface-alt);font-weight:700;margin-top:2px}
+.btn-add-vehicle:active{background:var(--primary-tint);border-color:var(--primary)}
+.empty-hint{text-align:center;color:var(--text-faint);font-size:12px;padding:30px 10px;line-height:1.6}
+.vehicle-block.dragging-v{opacity:.5}
+.vehicle-block.drop-above{box-shadow:0 -3px 0 0 var(--primary),var(--shadow-card)}
+.vehicle-block.drop-below{box-shadow:0 3px 0 0 var(--primary),var(--shadow-card)}
+
+/* Section 4: Cards */
+#sec-cards{flex:0 0 40%;display:flex;flex-direction:column;background:var(--surface);border-top:1px solid var(--border)}
+#card-tabs{flex:0 0 auto;display:flex;overflow-x:auto;border-bottom:1px solid var(--border);background:var(--surface-alt);-webkit-overflow-scrolling:touch;scrollbar-width:none}
+#card-tabs::-webkit-scrollbar{display:none}
+.tab-btn{padding:9px 14px;font-size:12px;font-weight:700;color:var(--text-faint);white-space:nowrap;border-bottom:2.5px solid transparent;margin-bottom:-1px;transition:color .15s,border-color .15s;flex-shrink:0}
+.tab-btn.active{color:var(--primary-dark);border-bottom-color:var(--primary)}
+#card-area{flex:1;overflow-y:auto;padding:10px;-webkit-overflow-scrolling:touch;position:relative}
+#card-grid{display:flex;flex-wrap:wrap;gap:7px;align-content:flex-start;padding-bottom:20px}
+.person-card{padding:8px 13px;background:var(--surface);border:1.5px solid var(--border-soft);border-radius:18px;font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;touch-action:none;user-select:none;-webkit-user-select:none;transition:opacity .2s,transform .1s,box-shadow .15s;box-shadow:0 1px 3px rgba(28,59,50,.06)}
+.person-card.assigned{opacity:.3;pointer-events:none;border-style:dashed;box-shadow:none}
+.person-card.holding{transform:scale(.93);opacity:.6;box-shadow:0 2px 8px rgba(28,59,50,.2)}
+.person-card.guest-card{border-color:var(--guest);color:var(--guest);background:var(--guest-tint)}
+.vehicle-slot.holding{box-shadow:0 2px 8px rgba(28,59,50,.2);transform:scale(.95)}
+.btn-add-guest{padding:8px 13px;background:var(--guest-tint);border:1.5px dashed var(--guest);border-radius:18px;font-size:12px;color:var(--guest);font-weight:700}
+.person-card.player-card{border-color:var(--player);color:var(--player);background:var(--player-tint)}
+.player-controls{padding:10px;background:var(--player-tint);border-bottom:1px solid #f5d9bf;width:100%;border-radius:12px;margin-bottom:8px}
+.player-row{display:flex;align-items:center;gap:7px;justify-content:center;flex-wrap:wrap}
+.player-row+.player-row{margin-top:8px}
+.player-controls label{font-size:12px;font-weight:700;color:var(--text-soft);white-space:nowrap}
+.player-controls input[type="number"]{width:42px;text-align:center;border:1px solid #f0c8a0;border-radius:7px;padding:5px 2px;font-size:13px;background:#fff}
+.player-controls .lbl-seats{font-size:12px;font-weight:700;color:var(--player)}
+.player-controls .btn-gen{padding:7px 16px;background:var(--player);color:#fff;border-radius:8px;font-size:12px;font-weight:700;margin-left:4px}
+.player-controls .btn-gen:active{background:#d67d44}
+
+/* Section 5: Confirm */
+#sec-confirm{flex:0 0 10%;display:flex;align-items:center;justify-content:center;padding:0 20px;background:var(--bg)}
+.btn-confirm{width:100%;max-width:360px;padding:13px;background:var(--primary);color:#fff;border-radius:14px;font-size:16px;font-weight:700;letter-spacing:2px;box-shadow:0 6px 16px rgba(43,184,154,.35)}
+.btn-confirm:active{background:var(--primary-dark)}
+
+/* Drag clone */
+#drag-clone{position:fixed;pointer-events:none;z-index:9999;padding:8px 14px;background:var(--primary);color:#fff;border-radius:18px;font-size:12px;font-weight:700;box-shadow:var(--shadow-float);display:none;white-space:nowrap;transform:translate(-50%,-50%)}
+
+/* Return zone */
+#return-zone{position:fixed;bottom:0;left:0;right:0;height:60px;background:rgba(214,83,109,.94);color:#fff;display:none;align-items:center;justify-content:center;font-size:15px;font-weight:700;z-index:9998;letter-spacing:2px;padding-bottom:env(safe-area-inset-bottom)}
+#return-zone.visible{display:flex}
+#return-zone.hover{background:rgba(193,62,87,.97)}
+
+/* Dialog */
+.dialog-overlay{position:fixed;inset:0;background:rgba(28,59,50,.35);z-index:10000;display:none;align-items:center;justify-content:center;padding:20px}
+.dialog-overlay.active{display:flex}
+.dialog-box{background:var(--surface);border-radius:16px;padding:22px 18px;max-width:300px;width:100%;text-align:center;box-shadow:var(--shadow-float)}
+.dialog-msg{font-size:14px;line-height:1.6;margin-bottom:16px;color:var(--text);white-space:pre-line;font-weight:600}
+.dialog-actions{display:flex;gap:10px}
+.dialog-actions button{flex:1;padding:11px;border-radius:10px;font-size:14px;font-weight:700}
+.dialog-cancel{background:var(--surface-alt);color:var(--text-soft)}
+.dialog-ok{background:var(--danger);color:#fff}
+.dialog-ok.primary{background:var(--primary)}
+.input-dialog-field{width:100%;padding:9px;border:1.5px solid var(--border-soft);border-radius:10px;font-size:14px;margin-bottom:12px;text-align:center;background:var(--surface-alt)}
+
+/* Toast */
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:10001;display:none;white-space:nowrap;box-shadow:var(--shadow-float)}
+#toast.show{display:block;animation:toastAnim 2s ease forwards}
+@keyframes toastAnim{0%{opacity:0}15%{opacity:1}75%{opacity:1}100%{opacity:0}}
+
+/* Vehicle Picker */
+.picker-overlay{position:fixed;inset:0;background:rgba(28,59,50,.35);z-index:10000;display:none;align-items:flex-end;justify-content:center}
+.picker-overlay.active{display:flex}
+.picker-sheet{background:var(--surface);border-radius:18px 18px 0 0;width:100%;max-width:400px;max-height:60vh;overflow-y:auto;padding:18px;padding-bottom:calc(18px + env(safe-area-inset-bottom));box-shadow:var(--shadow-float)}
+.picker-title{font-size:15px;font-weight:700;text-align:center;margin-bottom:14px;color:var(--text)}
+.picker-item{padding:13px;border:1.5px solid var(--border);border-radius:12px;margin-bottom:7px;display:flex;justify-content:space-between;align-items:center;font-size:14px;font-weight:600;background:var(--surface-alt)}
+.picker-item:active{background:var(--primary-tint);border-color:var(--primary)}
+.picker-item .cap{font-size:12px;color:var(--text-faint);font-weight:600}
+.picker-cancel{width:100%;padding:13px;text-align:center;font-size:14px;font-weight:700;color:var(--danger);margin-top:8px}
+.radio-group{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:14px}
+.radio-group label{display:flex;align-items:center;gap:4px;font-size:14px;font-weight:600;padding:7px 11px;border:1.5px solid var(--border-soft);border-radius:10px;cursor:pointer}
+.radio-group input{margin:0}
+.radio-group label:has(input:checked){border-color:var(--primary);background:var(--primary-tint);color:var(--primary-dark)}
+
+/* Settings Screen */
+#settings{background:var(--bg)}
+.settings-header{flex:0 0 auto;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 10px;background:var(--surface);border-bottom:1px solid var(--border);color:var(--text);height:48px}
+.settings-header .back-btn{justify-self:start;font-size:13px;color:var(--text-soft);padding:6px 8px;white-space:nowrap;font-weight:600}
+.settings-header h2{font-size:15px;font-weight:700;text-align:center;white-space:nowrap}
+.btn-to-main{justify-self:end;font-size:11px;color:var(--primary-dark);background:var(--primary-tint);border-radius:8px;padding:6px 9px;font-weight:700;white-space:nowrap}
+.settings-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:8px}
+.s-menu-item{display:flex;align-items:center;justify-content:space-between;padding:15px 16px;background:var(--surface);border-radius:12px;margin-bottom:6px;font-size:14px;font-weight:600;box-shadow:var(--shadow-card)}
+.s-menu-item:active{background:var(--primary-tint)}
+.s-menu-item .arrow{color:var(--text-faint);font-size:16px}
+.s-list-item{display:flex;align-items:center;padding:12px 14px;background:var(--surface);border-radius:12px;margin-bottom:6px;gap:10px;box-shadow:var(--shadow-card);transition:box-shadow .15s,opacity .15s}
+.s-list-item .item-name{flex:1;font-size:14px;font-weight:600}
+.s-list-item .item-sub{font-size:12px;color:var(--text-faint);font-weight:600}
+.s-list-item .item-actions{display:flex;gap:6px}
+.s-list-item .item-actions button{padding:6px 11px;border-radius:8px;font-size:12px;font-weight:700}
+.s-list-item.dragging-v{opacity:.5}
+.s-list-item.drop-above{box-shadow:0 -3px 0 0 var(--primary),var(--shadow-card)}
+.s-list-item.drop-below{box-shadow:0 3px 0 0 var(--primary),var(--shadow-card)}
+.s-btn-edit{background:var(--primary-tint);color:var(--primary-dark)}
+.s-btn-delete{background:var(--danger-tint);color:var(--danger)}
+.s-btn-delete.disabled{background:var(--surface-alt);color:var(--text-faint);pointer-events:none}
+.s-btn-add{display:block;width:100%;margin:6px 0 12px;padding:11px;border:2px dashed var(--border-soft);border-radius:12px;text-align:center;font-size:13px;color:var(--text-soft);background:var(--surface-alt);font-weight:700}
+.s-btn-add:active{background:var(--primary-tint);border-color:var(--primary)}
+.s-note{padding:11px 14px;font-size:11.5px;color:var(--text-soft);background:var(--primary-tint);border-radius:10px;margin-bottom:8px;line-height:1.5}
+.guide-section{background:var(--surface);border-radius:12px;padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow-card)}
+.guide-section h3{font-size:13.5px;color:var(--primary-dark);margin-bottom:9px;font-weight:700;display:flex;align-items:center;gap:6px}
+.guide-section p{font-size:12.5px;color:var(--text-soft);line-height:1.75;margin-bottom:7px}
+.guide-section p:last-child{margin-bottom:0}
+.guide-section strong{color:var(--text);font-weight:700}
+
+/* Output Screen */
+#output{background:var(--bg)}
+.output-header{flex:0 0 auto;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 10px;background:var(--surface);border-bottom:1px solid var(--border);color:var(--text);height:48px}
+.output-header .back-btn{justify-self:start;font-size:13px;color:var(--text-soft);padding:6px 8px;font-weight:600}
+.output-header h2{font-size:15px;font-weight:700;text-align:center;white-space:nowrap}
+.output-body{flex:1;display:flex;flex-direction:column;padding:12px}
+#output-text{flex:1;border:1.5px solid var(--border-soft);border-radius:12px;padding:12px;font-size:13px;line-height:1.7;resize:none;background:var(--surface);font-family:inherit;color:var(--text)}
+.output-actions{display:flex;gap:10px;margin-top:10px;padding-bottom:10px}
+.output-actions button{flex:1;padding:13px;border-radius:12px;font-size:14px;font-weight:700}
+.btn-copy{background:var(--primary);color:#fff;box-shadow:0 6px 16px rgba(43,184,154,.3)}
+.btn-copy:active{background:var(--primary-dark)}
+.btn-back{background:var(--surface-alt);color:var(--text-soft);border:1.5px solid var(--border)}
+.btn-back:active{background:var(--border)}
+</style>
+</head>
+<body>
+
+<!-- Main Screen -->
+<div id="app" class="screen active">
+  <div id="sec-header">
+    <button class="btn-reset" id="btnReset">リセット</button>
+    <h2>配車画面</h2>
+    <button class="btn-settings" id="btnSettings">⚙</button>
+  </div>
+  <div id="sec-title-bar">
+    <input type="text" class="title-input" id="titleInput" placeholder="タイトルを入力">
+  </div>
+  <div id="sec-vehicles"></div>
+  <div id="sec-cards">
+    <div id="card-tabs"></div>
+    <div id="card-area"><div id="card-grid"></div></div>
+  </div>
+  <div id="sec-confirm">
+    <button class="btn-confirm" id="btnDecide">決 定</button>
+  </div>
+</div>
+
+<!-- Settings Screen -->
+<div id="settings" class="screen">
+  <div class="settings-header">
+    <button class="back-btn" id="settingsBack">← 戻る</button>
+    <h2 id="settingsTitle">設定画面</h2>
+    <button class="btn-to-main" id="settingsToMain">配車画面</button>
+  </div>
+  <div class="settings-body" id="settingsBody"></div>
+</div>
+
+<!-- Output Screen -->
+<div id="output" class="screen">
+  <div class="output-header">
+    <button class="back-btn" id="outputBack">← 戻る</button>
+    <h2>最終確認</h2>
+    <button class="btn-to-main" id="outputToMain">配車画面</button>
+  </div>
+  <div class="output-body">
+    <textarea id="output-text"></textarea>
+    <div class="output-actions">
+      <button class="btn-back" id="outputBackBtn">戻る</button>
+      <button class="btn-copy" id="outputCopyBtn">コピーする</button>
+    </div>
+  </div>
+</div>
+
+<!-- Overlays -->
+<div id="drag-clone"></div>
+<div id="return-zone">元に戻す</div>
+<div class="dialog-overlay" id="dialogOverlay">
+  <div class="dialog-box">
+    <p class="dialog-msg" id="dialogMsg"></p>
+    <div id="dialogExtra"></div>
+    <div class="dialog-actions" id="dialogActions"></div>
+  </div>
+</div>
+<div class="picker-overlay" id="pickerOverlay">
+  <div class="picker-sheet" id="pickerSheet"></div>
+</div>
+<div id="toast"></div>
+
+<script>
+'use strict';
+
+/* ========== Utilities ========== */
+let _seq = Date.now();
+function uid() { return 'id' + (++_seq).toString(36); }
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function $(id) { return document.getElementById(id); }
+
+/* ========== Default Data ========== */
+const VEHICLE_LIST = [
+  { name: 'チームトラック', capacity: 2, fixed: true },
+  { name: 'チームバス', capacity: 22, fixed: true },
+  { name: '軽トラ', capacity: 2, fixed: true },
+  { name: '選手号' },
+  { name: '父兄号' },
+  { name: '道具車' },
+  { name: 'フロント号' },
+  { name: '審判支援号' }
+];
+
+function defaultSettings() {
+  return {
+    groups: [
+      { id: 'g_player', name: '選手', people: [], isPlayer: true },
+      { id: 'g_staff', name: '現場/フロント', people: [] },
+      { id: 'g_p3', name: '3年父兄', people: [] },
+      { id: 'g_p2', name: '2年父兄', people: [] },
+      { id: 'g_p1', name: '1年父兄', people: [] },
+      { id: 'g_guest', name: 'ゲスト', people: [], isGuest: true }
+    ],
+    tabOrder: ['g_player', 'g_staff', 'g_p3', 'g_p2', 'g_p1', 'g_guest']
+  };
+}
+
+function defaultSession() {
+  return {
+    title: '', counts: { y3: '', y2: '', y1: '' }, activeTab: '', playerSeats: '',
+    vehicles: [
+      { id: uid(), typeName: 'チームトラック', capacity: 2, slots: Array(2).fill(null) },
+      { id: uid(), typeName: 'チームバス', capacity: 22, slots: Array(22).fill(null) }
+    ]
+  };
+}
+
+/* ========== State ========== */
+let S, SS; // S = settings, SS = session
+
+function load() {
+  try { S = JSON.parse(localStorage.getItem('haisha_settings')) || defaultSettings(); } catch { S = defaultSettings(); }
+  try { SS = JSON.parse(localStorage.getItem('haisha_session')) || defaultSession(); } catch { SS = defaultSession(); }
+  if (!S.groups) S = defaultSettings();
+  if (!SS.vehicles) SS.vehicles = [];
+  if (!SS.counts) SS.counts = { y3: '', y2: '', y1: '' };
+  if (!S.groups.find(g => g.isPlayer)) {
+    S.groups.unshift({ id: 'g_player', name: '選手', people: [], isPlayer: true });
+  }
+  if (!S.tabOrder) S.tabOrder = S.groups.map(g => g.id);
+  const ids = S.groups.map(g => g.id);
+  S.tabOrder = S.tabOrder.filter(id => ids.includes(id));
+  ids.forEach(id => { if (!S.tabOrder.includes(id)) S.tabOrder.push(id); });
+  if (SS.playerSeats === undefined) SS.playerSeats = '';
+}
+
+function saveS() { localStorage.setItem('haisha_settings', JSON.stringify(S)); }
+function saveSS() { localStorage.setItem('haisha_session', JSON.stringify(SS)); }
+function saveAll() { saveS(); saveSS(); }
+
+function group(id) { return S.groups.find(g => g.id === id); }
+
+function assigned(pid) {
+  return SS.vehicles.some(v => v.slots.some(s => s && s.personId === pid));
+}
+
+function vehicleLabel(v) {
+  const same = SS.vehicles.filter(x => x.typeName === v.typeName);
+  if (same.length <= 1) return v.typeName;
+  const n = same.indexOf(v) + 1;
+  return v.typeName + (CN[n - 1] || '(' + n + ')');
+}
+
+function removePerson(pid) {
+  SS.vehicles.forEach(v => { v.slots = v.slots.map(s => s && s.personId === pid ? null : s); });
+}
+
+function renamePerson(pid, name) {
+  SS.vehicles.forEach(v => { v.slots.forEach(s => { if (s && s.personId === pid) s.name = name; }); });
+}
+
+/* ========== Screen nav ========== */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $(id).classList.add('active');
+}
+
+/* ========== Toast ========== */
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = '';
+  void t.offsetWidth;
+  t.className = 'show';
+  setTimeout(() => { t.className = ''; }, 2100);
+}
+
+/* ========== Dialog ========== */
+function dialog(msg, opts = {}) {
+  return new Promise(res => {
+    const ov = $('dialogOverlay');
+    $('dialogMsg').textContent = msg;
+    const extra = $('dialogExtra');
+    extra.innerHTML = '';
+    const acts = $('dialogActions');
+    acts.innerHTML = '';
+
+    if (opts.input) {
+      const inp = document.createElement('input');
+      inp.type = 'text'; inp.className = 'input-dialog-field';
+      inp.value = opts.val || ''; inp.placeholder = opts.ph || '';
+      extra.appendChild(inp);
+      setTimeout(() => inp.focus(), 100);
+    }
+    if (opts.num) {
+      const inp = document.createElement('input');
+      inp.type = 'number'; inp.className = 'input-dialog-field';
+      inp.value = opts.numVal || ''; inp.placeholder = opts.numPh || '';
+      inp.inputMode = 'numeric'; inp.min = '1';
+      extra.appendChild(inp);
+    }
+
+    const cb = document.createElement('button');
+    cb.className = 'dialog-cancel'; cb.textContent = 'キャンセル';
+    cb.onclick = () => { ov.classList.remove('active'); res(null); };
+    acts.appendChild(cb);
+
+    const ob = document.createElement('button');
+    ob.className = opts.danger ? 'dialog-ok' : 'dialog-ok primary';
+    ob.textContent = opts.ok || 'OK';
+    ob.onclick = () => {
+      ov.classList.remove('active');
+      if (opts.input) res(extra.querySelector('input').value.trim());
+      else if (opts.num) res(parseInt(extra.querySelector('input').value) || null);
+      else res(true);
+    };
+    acts.appendChild(ob);
+    ov.classList.add('active');
+  });
+}
+
+/* ========== Vehicle Picker ========== */
+function pickVehicle() {
+  return new Promise(res => {
+    const ov = $('pickerOverlay');
+    const sh = $('pickerSheet');
+    sh.innerHTML = '<div class="picker-title">車を選択</div>';
+
+    VEHICLE_LIST.forEach(vl => {
+      const icon = vehicleIcon(vl.name);
+      const d = document.createElement('div');
+      d.className = 'picker-item';
+      d.innerHTML = '<span>' + icon + ' ' + esc(vl.name) + '</span>' + (vl.fixed ? '<span class="cap">' + vl.capacity + '人乗り</span>' : '');
+      d.onclick = async () => {
+        ov.classList.remove('active');
+        if (vl.fixed) { res({ name: vl.name, capacity: vl.capacity }); return; }
+        const cap = await pickCapacity(vl.name);
+        res(cap ? { name: vl.name, capacity: cap } : null);
+      };
+      sh.appendChild(d);
+    });
+
+    const cb = document.createElement('button');
+    cb.className = 'picker-cancel'; cb.textContent = 'キャンセル';
+    cb.onclick = () => { ov.classList.remove('active'); res(null); };
+    sh.appendChild(cb);
+    ov.classList.add('active');
+  });
+}
+
+function pickCapacity(name) {
+  return new Promise(res => {
+    const ov = $('dialogOverlay');
+    $('dialogMsg').textContent = '席数の指定';
+    const extra = $('dialogExtra');
+    extra.innerHTML = '';
+    const rg = document.createElement('div');
+    rg.className = 'radio-group';
+    for (let n = 2; n <= 8; n++) {
+      const lbl = document.createElement('label');
+      const rb = document.createElement('input');
+      rb.type = 'radio'; rb.name = 'cap'; rb.value = n;
+      if (n === 5) rb.checked = true;
+      lbl.appendChild(rb);
+      lbl.appendChild(document.createTextNode(n + '人'));
+      rg.appendChild(lbl);
+    }
+    extra.appendChild(rg);
+    const acts = $('dialogActions');
+    acts.innerHTML = '';
+    const cb = document.createElement('button');
+    cb.className = 'dialog-cancel'; cb.textContent = 'キャンセル';
+    cb.onclick = () => { ov.classList.remove('active'); res(null); };
+    acts.appendChild(cb);
+    const ob = document.createElement('button');
+    ob.className = 'dialog-ok primary'; ob.textContent = '決定';
+    ob.onclick = () => {
+      ov.classList.remove('active');
+      const sel = extra.querySelector('input[name="cap"]:checked');
+      res(sel ? parseInt(sel.value) : null);
+    };
+    acts.appendChild(ob);
+    ov.classList.add('active');
+  });
+}
+
+/* ========== Render ========== */
+function renderAll() {
+  renderVehicles();
+  renderTabs();
+  renderCards();
+  $('titleInput').value = SS.title || '';
+}
+
+function renderVehicles() {
+  const c = $('sec-vehicles');
+  c.innerHTML = '';
+
+  if (SS.vehicles.length === 0) {
+    const hint = document.createElement('div');
+    hint.className = 'empty-hint';
+    hint.textContent = '下の「＋ 車を追加」ボタンから\n車を追加してください';
+    c.appendChild(hint);
+  }
+
+  SS.vehicles.forEach((v, vi) => {
+    const block = document.createElement('div');
+    block.className = 'vehicle-block';
+    const main = document.createElement('div');
+    main.className = 'vehicle-main';
+
+    const hdr = document.createElement('div');
+    hdr.className = 'vehicle-header';
+    hdr.style.touchAction = 'none';
+    hdr.style.userSelect = 'none';
+    const occ = v.slots.filter(s => s).length;
+    const remain = v.capacity - occ;
+    hdr.innerHTML = '<span class="vehicle-name">' + vehicleIcon(v.typeName) + ' ' + esc(vehicleLabel(v)) + '</span><span class="vehicle-count">' + v.capacity + '人乗り ／ 残' + remain + '席</span>';
+    initVehicleReorder(hdr, block, vi);
+    main.appendChild(hdr);
+
+    const grid = document.createElement('div');
+    grid.className = 'vehicle-slots';
+    for (let si = 0; si < v.capacity; si++) {
+      const slot = document.createElement('div');
+      slot.className = 'vehicle-slot' + (si === 0 ? ' driver' : '');
+      slot.dataset.vi = vi;
+      slot.dataset.si = si;
+
+      const p = v.slots[si];
+      if (si === 0) slot.innerHTML = '<span class="slot-label">運転</span>' + (p ? esc(p.name) : '');
+      else if (p) slot.textContent = p.name;
+
+      if (p) {
+        slot.classList.add('occupied');
+        initSlotDrag(slot, vi, si, p);
+      }
+      grid.appendChild(slot);
+    }
+    main.appendChild(grid);
+    block.appendChild(main);
+
+    const del = document.createElement('div');
+    del.className = 'vehicle-delete';
+    del.textContent = '削除';
+    del.onclick = async () => {
+      if (await dialog('この車を削除しますか？\n配置された名前は元に戻ります。', { danger: true, ok: '削除' })) {
+        SS.vehicles.splice(vi, 1);
+        saveSS(); renderAll();
+      }
+    };
+    block.appendChild(del);
+    c.appendChild(block);
+  });
+
+  const btn = document.createElement('button');
+  btn.className = 'btn-add-vehicle';
+  btn.textContent = '＋ 車を追加';
+  btn.onclick = async () => {
+    const vt = await pickVehicle();
+    if (!vt) return;
+    SS.vehicles.push({ id: uid(), typeName: vt.name, capacity: vt.capacity, slots: Array(vt.capacity).fill(null) });
+    saveSS(); renderAll();
+  };
+  c.appendChild(btn);
+}
+
+function renderTabs() {
+  const c = $('card-tabs');
+  c.innerHTML = '';
+  const ordered = S.tabOrder.map(id => group(id)).filter(Boolean);
+  if (!SS.activeTab || !ordered.find(g => g.id === SS.activeTab)) {
+    SS.activeTab = ordered.length > 0 ? ordered[0].id : '';
+  }
+  ordered.forEach(g => {
+    const b = document.createElement('button');
+    b.className = 'tab-btn' + (SS.activeTab === g.id ? ' active' : '');
+    b.textContent = g.name;
+    b.onclick = () => { SS.activeTab = g.id; saveSS(); renderTabs(); renderCards(); };
+    c.appendChild(b);
+  });
+}
+
+function renderCards() {
+  const grid = $('card-grid');
+  grid.innerHTML = '';
+  const g = group(SS.activeTab);
+  if (!g) return;
+
+  if (g.isPlayer) {
+    const ctrl = document.createElement('div');
+    ctrl.className = 'player-controls';
+
+    const row1 = document.createElement('div');
+    row1.className = 'player-row';
+    row1.innerHTML = '<label>3年</label>';
+    const c3 = document.createElement('input'); c3.type = 'number'; c3.inputMode = 'numeric'; c3.min = '0'; c3.id = 'count3'; c3.value = SS.counts.y3;
+    c3.oninput = () => { SS.counts.y3 = c3.value; saveSS(); };
+    row1.appendChild(c3);
+    row1.insertAdjacentHTML('beforeend', '<label>2年</label>');
+    const c2 = document.createElement('input'); c2.type = 'number'; c2.inputMode = 'numeric'; c2.min = '0'; c2.id = 'count2'; c2.value = SS.counts.y2;
+    c2.oninput = () => { SS.counts.y2 = c2.value; saveSS(); };
+    row1.appendChild(c2);
+    row1.insertAdjacentHTML('beforeend', '<label>1年</label>');
+    const c1 = document.createElement('input'); c1.type = 'number'; c1.inputMode = 'numeric'; c1.min = '0'; c1.id = 'count1'; c1.value = SS.counts.y1;
+    c1.oninput = () => { SS.counts.y1 = c1.value; saveSS(); };
+    row1.appendChild(c1);
+    ctrl.appendChild(row1);
+
+    const row2 = document.createElement('div');
+    row2.className = 'player-row';
+    row2.innerHTML = '<label class="lbl-seats">残席数</label>';
+    const seatInp = document.createElement('input'); seatInp.type = 'number'; seatInp.inputMode = 'numeric'; seatInp.min = '0'; seatInp.value = SS.playerSeats;
+    seatInp.oninput = () => { SS.playerSeats = seatInp.value; saveSS(); };
+    row2.appendChild(seatInp);
+    const btn = document.createElement('button');
+    btn.className = 'btn-gen'; btn.textContent = 'カード作成';
+    btn.onclick = () => generatePlayerCards(seatInp);
+    row2.appendChild(btn);
+    ctrl.appendChild(row2);
+
+    grid.appendChild(ctrl);
+  }
+
+  if (g.people.length === 0 && !g.isGuest && !g.isPlayer) {
+    const hint = document.createElement('div');
+    hint.className = 'empty-hint';
+    hint.textContent = '設定画面から名前を追加してください';
+    grid.appendChild(hint);
+    return;
+  }
+
+  g.people.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'person-card' + (g.isGuest ? ' guest-card' : '') + (g.isPlayer ? ' player-card' : '');
+    if (assigned(p.id)) card.classList.add('assigned');
+    card.textContent = p.name;
+    card.dataset.pid = p.id;
+    card.dataset.gid = g.id;
+    card.dataset.nm = p.name;
+    if (!assigned(p.id)) initCardDrag(card);
+    grid.appendChild(card);
+  });
+
+  if (g.isGuest) {
+    const btn = document.createElement('button');
+    btn.className = 'btn-add-guest';
+    btn.textContent = '＋ ゲスト追加';
+    btn.onclick = async () => {
+      const nm = await dialog('ゲストの名前を入力', { input: true, ph: '名前', ok: '追加' });
+      if (nm) { g.people.push({ id: uid(), name: nm }); saveS(); renderCards(); }
+    };
+    grid.appendChild(btn);
+  }
+}
+
+const CN = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','⑯','⑰','⑱','⑲','⑳'];
+
+/* ========== Vehicle Reorder ========== */
+const VR = { active: false, scrolling: false, timer: null, vi: -1, block: null, pointerId: -1, sy: 0, ly: 0, lastX: 0, lastY: 0, raf: null, spd: 0 };
+
+function vrFindTarget(x, y, block) {
+  const blocks = $('sec-vehicles').querySelectorAll('.vehicle-block');
+  blocks.forEach(b => b.classList.remove('drop-above', 'drop-below'));
+  const el = document.elementFromPoint(x, y);
+  if (el) {
+    const tb = el.closest('.vehicle-block');
+    if (tb && tb !== block) {
+      const r = tb.getBoundingClientRect();
+      if (y < r.top + r.height / 2) tb.classList.add('drop-above');
+      else tb.classList.add('drop-below');
+    }
+  }
+}
+
+function vrAutoScroll(y) {
+  const rect = $('sec-vehicles').getBoundingClientRect();
+  const edge = 45;
+  let spd = 0;
+  if (y >= rect.top && y <= rect.bottom) {
+    const dt = y - rect.top, db = rect.bottom - y;
+    if (dt < edge) spd = -Math.ceil((1 - dt / edge) * 7);
+    else if (db < edge) spd = Math.ceil((1 - db / edge) * 7);
+  } else if (y < rect.top) { spd = -7; }
+  VR.spd = spd;
+  if (spd !== 0 && !VR.raf) VR.raf = requestAnimationFrame(vrScrollTick);
+}
+
+function vrScrollTick() {
+  if (VR.spd !== 0 && VR.active) {
+    $('sec-vehicles').scrollTop += VR.spd;
+    vrFindTarget(VR.lastX, VR.lastY, VR.block);
+    VR.raf = requestAnimationFrame(vrScrollTick);
+  } else { VR.raf = null; }
+}
+
+function vrStopScroll() {
+  VR.spd = 0;
+  if (VR.raf) { cancelAnimationFrame(VR.raf); VR.raf = null; }
+}
+
+function initVehicleReorder(hdr, block, vi) {
+  hdr.addEventListener('pointerdown', e => {
+    if (e.button !== 0 || D.active) return;
+    e.preventDefault();
+    hdr.setPointerCapture(e.pointerId);
+    VR.sy = e.clientY; VR.ly = e.clientY; VR.vi = vi; VR.block = block; VR.pointerId = e.pointerId; VR.active = false; VR.scrolling = false;
+    VR.timer = setTimeout(() => {
+      VR.active = true;
+      block.classList.add('dragging-v');
+    }, 400);
+  });
+  hdr.addEventListener('pointermove', e => {
+    if (e.pointerId !== VR.pointerId) return;
+    if (!VR.active && VR.timer) {
+      if (Math.abs(e.clientY - VR.sy) > 8) { clearTimeout(VR.timer); VR.timer = null; VR.scrolling = true; }
+    }
+    if (!VR.active && VR.scrolling) {
+      $('sec-vehicles').scrollTop -= (e.clientY - VR.ly);
+      VR.ly = e.clientY;
+      return;
+    }
+    if (!VR.active) return;
+    VR.lastX = e.clientX; VR.lastY = e.clientY;
+    vrFindTarget(e.clientX, e.clientY, block);
+    vrAutoScroll(e.clientY);
+  });
+  const endReorder = e => {
+    if (e.pointerId !== VR.pointerId) return;
+    if (VR.timer) { clearTimeout(VR.timer); VR.timer = null; }
+    vrStopScroll();
+    VR.scrolling = false;
+    if (!VR.active) { VR.pointerId = -1; return; }
+    VR.block.classList.remove('dragging-v');
+    const blocks = $('sec-vehicles').querySelectorAll('.vehicle-block');
+    let targetIdx = -1, above = false;
+    blocks.forEach((b, idx) => {
+      if (b.classList.contains('drop-above')) { targetIdx = idx; above = true; }
+      if (b.classList.contains('drop-below')) { targetIdx = idx; above = false; }
+      b.classList.remove('drop-above', 'drop-below');
+    });
+    if (targetIdx >= 0 && targetIdx !== VR.vi) {
+      const moved = SS.vehicles.splice(VR.vi, 1)[0];
+      let ins = targetIdx > VR.vi ? targetIdx - 1 : targetIdx;
+      if (!above) ins++;
+      SS.vehicles.splice(ins, 0, moved);
+      saveSS(); renderAll();
+    }
+    VR.active = false; VR.pointerId = -1;
+  };
+  hdr.addEventListener('pointerup', endReorder);
+  hdr.addEventListener('pointercancel', endReorder);
+}
+
+/* ========== Tab Order Reorder (shared by グループ設定 / タブ順序設定) ========== */
+const TR = { active: false, scrolling: false, timer: null, idx: -1, row: null, pointerId: -1, sx: 0, sy: 0, ly: 0, lastX: 0, lastY: 0, raf: null, spd: 0 };
+
+function trFindTarget(x, y, row) {
+  const rows = $('settingsBody').querySelectorAll('.tr-row');
+  rows.forEach(r => r.classList.remove('drop-above', 'drop-below'));
+  const el = document.elementFromPoint(x, y);
+  if (el) {
+    const tr = el.closest('.tr-row');
+    if (tr && tr !== row) {
+      const r = tr.getBoundingClientRect();
+      if (y < r.top + r.height / 2) tr.classList.add('drop-above');
+      else tr.classList.add('drop-below');
+    }
+  }
+}
+
+function trAutoScroll(y) {
+  const rect = $('settingsBody').getBoundingClientRect();
+  const edge = 45;
+  let spd = 0;
+  if (y >= rect.top && y <= rect.bottom) {
+    const dt = y - rect.top, db = rect.bottom - y;
+    if (dt < edge) spd = -Math.ceil((1 - dt / edge) * 7);
+    else if (db < edge) spd = Math.ceil((1 - db / edge) * 7);
+  } else if (y < rect.top) { spd = -7; }
+  TR.spd = spd;
+  if (spd !== 0 && !TR.raf) TR.raf = requestAnimationFrame(trScrollTick);
+}
+
+function trScrollTick() {
+  if (TR.spd !== 0 && TR.active) {
+    $('settingsBody').scrollTop += TR.spd;
+    trFindTarget(TR.lastX, TR.lastY, TR.row);
+    TR.raf = requestAnimationFrame(trScrollTick);
+  } else { TR.raf = null; }
+}
+
+function trStopScroll() {
+  TR.spd = 0;
+  if (TR.raf) { cancelAnimationFrame(TR.raf); TR.raf = null; }
+}
+
+// row: the element whose classes (dragging-v / drop-above / drop-below) get visual feedback, and which is the unit being moved in S.tabOrder
+// idx: this row's current position within S.tabOrder
+// opts.dragHandle: the element that listens for the long-press (defaults to row itself)
+// opts.onTap: called when the gesture turns out to be a short tap (not a drag) - used for "tap to open" rows
+function initRowReorder(row, idx, opts) {
+  opts = opts || {};
+  const handle = opts.dragHandle || row;
+  handle.style.touchAction = 'none';
+  handle.style.userSelect = 'none';
+  row.classList.add('tr-row');
+
+  handle.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    TR.sx = e.clientX; TR.sy = e.clientY; TR.ly = e.clientY; TR.idx = idx; TR.row = row; TR.pointerId = e.pointerId; TR.active = false; TR.scrolling = false;
+    TR.timer = setTimeout(() => {
+      TR.active = true;
+      handle.setPointerCapture(e.pointerId);
+      row.classList.add('dragging-v');
+    }, 400);
+  });
+  handle.addEventListener('pointermove', e => {
+    if (e.pointerId !== TR.pointerId) return;
+    if (!TR.active && TR.timer) {
+      if (Math.abs(e.clientY - TR.sy) > 8 || Math.abs(e.clientX - TR.sx) > 8) { clearTimeout(TR.timer); TR.timer = null; TR.scrolling = true; }
+    }
+    if (!TR.active && TR.scrolling) {
+      $('settingsBody').scrollTop -= (e.clientY - TR.ly);
+      TR.ly = e.clientY;
+      return;
+    }
+    if (!TR.active) return;
+    TR.lastX = e.clientX; TR.lastY = e.clientY;
+    trFindTarget(e.clientX, e.clientY, row);
+    trAutoScroll(e.clientY);
+  });
+  const endReorder = e => {
+    if (e.pointerId !== TR.pointerId) return;
+    const wasTap = !!TR.timer && !TR.scrolling;
+    if (TR.timer) { clearTimeout(TR.timer); TR.timer = null; }
+    trStopScroll();
+    TR.scrolling = false;
+    if (!TR.active) {
+      TR.pointerId = -1;
+      if (wasTap && opts.onTap) opts.onTap();
+      return;
+    }
+    row.classList.remove('dragging-v');
+    const rows = $('settingsBody').querySelectorAll('.tr-row');
+    let targetIdx = -1, above = false;
+    rows.forEach((r, i) => {
+      if (r.classList.contains('drop-above')) { targetIdx = i; above = true; }
+      if (r.classList.contains('drop-below')) { targetIdx = i; above = false; }
+      r.classList.remove('drop-above', 'drop-below');
+    });
+    if (targetIdx >= 0 && targetIdx !== TR.idx) {
+      const moved = S.tabOrder.splice(TR.idx, 1)[0];
+      let ins = targetIdx > TR.idx ? targetIdx - 1 : targetIdx;
+      if (!above) ins++;
+      S.tabOrder.splice(ins, 0, moved);
+      saveS(); renderSettings();
+    }
+    TR.active = false; TR.pointerId = -1;
+  };
+  handle.addEventListener('pointerup', endReorder);
+  handle.addEventListener('pointercancel', endReorder);
+}
+
+function generatePlayerCards(inp) {
+  const y3 = parseInt($('count3').value) || 0;
+  const y2 = parseInt($('count2').value) || 0;
+  const y1 = parseInt($('count1').value) || 0;
+  const seats = parseInt(inp.value) || 0;
+  const total = y3 + y2 + y1;
+  let over = total - seats;
+  if (over <= 0) { toast('はみ出しはありません'); return; }
+
+  const pg = S.groups.find(g => g.isPlayer);
+  SS.vehicles.forEach(v => { v.slots = v.slots.map(s => s && s.groupId === pg.id ? null : s); });
+  pg.people = [];
+
+  const f1 = Math.min(over, y1); over -= f1;
+  const f2 = Math.min(over, y2); over -= f2;
+  const f3 = Math.min(over, y3);
+
+  for (let i = 0; i < f1; i++) pg.people.push({ id: uid(), name: '1年' + (CN[i] || (i+1)), grade: 1 });
+  for (let i = 0; i < f2; i++) pg.people.push({ id: uid(), name: '2年' + (CN[i] || (i+1)), grade: 2 });
+  for (let i = 0; i < f3; i++) pg.people.push({ id: uid(), name: '3年' + (CN[i] || (i+1)), grade: 3 });
+
+  saveAll();
+  renderAll();
+  toast(pg.people.length + '枚のカードを作成しました');
+}
+
+/* ========== Pointer Drag & Drop ========== */
+const D = { active: false, scrolling: false, timer: null, sx: 0, sy: 0, ly: 0, pid: null, gid: null, nm: null, src: null, vi: 0, si: 0, scrollEl: null, holdEl: null, pointerId: -1, targetSlot: null, targetReturn: false };
+const cloneEl = $('drag-clone');
+const retZone = $('return-zone');
+
+function initCardDrag(el) {
+  el.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    el.setPointerCapture(e.pointerId);
+    el.classList.add('holding');
+    Object.assign(D, { sx: e.clientX, sy: e.clientY, ly: e.clientY, pid: el.dataset.pid, gid: el.dataset.gid, nm: el.dataset.nm, src: 'card', scrolling: false, active: false, scrollEl: $('card-area'), holdEl: el, pointerId: e.pointerId, targetSlot: null, targetReturn: false });
+    D.timer = setTimeout(() => { if (!D.scrolling) { if (D.holdEl) D.holdEl.classList.remove('holding'); startDrag(D.sx, D.sy); } }, 180);
+  });
+  el.addEventListener('pointermove', onPtrMove);
+  el.addEventListener('pointerup', onPtrEnd);
+  el.addEventListener('pointercancel', onPtrEnd);
+}
+
+function initSlotDrag(el, vi, si, person) {
+  el.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    el.setPointerCapture(e.pointerId);
+    el.classList.add('holding');
+    Object.assign(D, { sx: e.clientX, sy: e.clientY, ly: e.clientY, pid: person.personId, gid: person.groupId, nm: person.name, src: 'slot', vi, si, scrolling: false, active: false, scrollEl: $('sec-vehicles'), holdEl: el, pointerId: e.pointerId, targetSlot: null, targetReturn: false });
+    D.timer = setTimeout(() => { if (!D.scrolling) { if (D.holdEl) D.holdEl.classList.remove('holding'); retZone.classList.add('visible'); startDrag(D.sx, D.sy); } }, 200);
+  });
+  el.addEventListener('pointermove', onPtrMove);
+  el.addEventListener('pointerup', onPtrEnd);
+  el.addEventListener('pointercancel', onPtrEnd);
+}
+
+let autoRAF = null, autoSpeed = 0, lastPx = 0, lastPy = 0;
+
+function autoScrollTick() {
+  const vc = $('sec-vehicles');
+  if (autoSpeed !== 0 && D.active) {
+    vc.scrollTop += autoSpeed;
+    findDropTarget(lastPx, lastPy);
+    autoRAF = requestAnimationFrame(autoScrollTick);
+  } else { autoRAF = null; }
+}
+
+function updateAutoScroll(y) {
+  const rect = $('sec-vehicles').getBoundingClientRect();
+  const edge = 45;
+  let spd = 0;
+  if (y >= rect.top && y <= rect.bottom) {
+    const dt = y - rect.top, db = rect.bottom - y;
+    if (dt < edge) spd = -Math.ceil((1 - dt / edge) * 7);
+    else if (db < edge) spd = Math.ceil((1 - db / edge) * 7);
+  } else if (y < rect.top) {
+    spd = -7;
+  }
+  autoSpeed = spd;
+  if (spd !== 0 && !autoRAF) autoRAF = requestAnimationFrame(autoScrollTick);
+}
+
+function stopAutoScroll() {
+  autoSpeed = 0;
+  if (autoRAF) { cancelAnimationFrame(autoRAF); autoRAF = null; }
+}
+
+function startDrag(x, y) {
+  D.active = true;
+  cloneEl.textContent = D.nm;
+  cloneEl.style.cssText = 'display:block;left:' + x + 'px;top:' + y + 'px';
+}
+
+function findDropTarget(x, y) {
+  cloneEl.style.display = 'none';
+  const hit = document.elementFromPoint(x, y);
+  cloneEl.style.display = 'block';
+
+  document.querySelectorAll('.drop-hover').forEach(s => s.classList.remove('drop-hover'));
+  retZone.classList.remove('hover');
+  D.targetSlot = null;
+  D.targetReturn = false;
+
+  if (!hit) return;
+
+  const slot = hit.closest ? hit.closest('.vehicle-slot') : null;
+  if (slot) {
+    const sameSlot = D.src === 'slot' && parseInt(slot.dataset.vi) === D.vi && parseInt(slot.dataset.si) === D.si;
+    if (!sameSlot) {
+      slot.classList.add('drop-hover');
+      D.targetSlot = { vi: parseInt(slot.dataset.vi), si: parseInt(slot.dataset.si) };
+    }
+  }
+
+  const onReturn = hit.id === 'return-zone' || (hit.closest && hit.closest('#return-zone'));
+  if (onReturn) {
+    retZone.classList.add('hover');
+    D.targetReturn = true;
+  }
+}
+
+function onPtrMove(e) {
+  if (e.pointerId !== D.pointerId) return;
+
+  if (D.active) {
+    cloneEl.style.left = e.clientX + 'px';
+    cloneEl.style.top = e.clientY + 'px';
+    lastPx = e.clientX; lastPy = e.clientY;
+    findDropTarget(e.clientX, e.clientY);
+    updateAutoScroll(e.clientY);
+    return;
+  }
+
+  if (D.timer) {
+    const dx = Math.abs(e.clientX - D.sx);
+    const dy = Math.abs(e.clientY - D.sy);
+    if (dx > 8 || dy > 8) {
+      clearTimeout(D.timer); D.timer = null;
+      D.scrolling = true;
+      if (D.holdEl) { D.holdEl.classList.remove('holding'); D.holdEl = null; }
+    }
+  }
+
+  if (D.scrolling && D.scrollEl) {
+    D.scrollEl.scrollTop -= (e.clientY - D.ly);
+  }
+  D.ly = e.clientY;
+}
+
+function onPtrEnd(e) {
+  if (e.pointerId !== D.pointerId) return;
+  if (D.timer) { clearTimeout(D.timer); D.timer = null; }
+  if (D.holdEl) { D.holdEl.classList.remove('holding'); D.holdEl = null; }
+  if (!D.active) { D.scrolling = false; D.pointerId = -1; stopAutoScroll(); return; }
+
+  stopAutoScroll();
+  cloneEl.style.display = 'none';
+  document.querySelectorAll('.drop-hover').forEach(s => s.classList.remove('drop-hover'));
+
+  const t = D.targetSlot;
+  if (D.src === 'card' && t) {
+    SS.vehicles[t.vi].slots[t.si] = { personId: D.pid, groupId: D.gid, name: D.nm };
+    saveSS(); renderAll();
+  } else if (D.src === 'slot' && t) {
+    const src = SS.vehicles[D.vi].slots[D.si];
+    const dst = SS.vehicles[t.vi].slots[t.si];
+    SS.vehicles[t.vi].slots[t.si] = src;
+    SS.vehicles[D.vi].slots[D.si] = dst;
+    saveSS(); renderAll();
+  } else if (D.src === 'slot' && D.targetReturn) {
+    SS.vehicles[D.vi].slots[D.si] = null;
+    saveSS(); renderAll();
+  }
+
+  retZone.classList.remove('visible', 'hover');
+  D.active = false; D.scrolling = false; D.src = null; D.pointerId = -1;
+  D.targetSlot = null; D.targetReturn = false;
+}
+
+/* ========== Settings ========== */
+let sStack = [];
+
+function openSettings() {
+  sStack = ['menu'];
+  showScreen('settings');
+  renderSettings();
+}
+
+function renderSettings() {
+  const body = $('settingsBody');
+  const titleEl = $('settingsTitle');
+  const view = sStack[sStack.length - 1];
+  body.innerHTML = '';
+
+  if (view === 'menu') {
+    titleEl.textContent = '設定画面';
+    [{ l: 'グループ設定', t: 'groups' }, { l: '使い方ガイド', t: 'guide' }].forEach(item => {
+      const el = document.createElement('div');
+      el.className = 's-menu-item';
+      el.innerHTML = '<span>' + item.l + '</span><span class="arrow">›</span>';
+      el.onclick = () => { sStack.push(item.t); renderSettings(); };
+      body.appendChild(el);
+    });
+
+  } else if (view === 'groups') {
+    titleEl.textContent = 'グループ設定';
+    const note = document.createElement('div');
+    note.className = 's-note';
+    note.textContent = 'グループ名をタップすると名前カードを管理できます。長押ししてドラッグすると順番を変更できます。';
+    body.appendChild(note);
+
+    const ordered = S.tabOrder.map(id => group(id)).filter(Boolean);
+    ordered.forEach((g, i) => {
+      const row = document.createElement('div');
+      row.className = 's-list-item';
+
+      const nameEl = document.createElement('span');
+      nameEl.className = 'item-name';
+      nameEl.textContent = g.name;
+      row.appendChild(nameEl);
+
+      const sub = document.createElement('span');
+      sub.className = 'item-sub'; sub.textContent = g.people.length + '名';
+      row.appendChild(sub);
+
+      const acts = document.createElement('div');
+      acts.className = 'item-actions';
+
+      const eb = document.createElement('button');
+      eb.className = 's-btn-edit'; eb.textContent = '編集';
+      eb.onclick = async () => {
+        const nm = await dialog('グループ名を編集', { input: true, val: g.name, ok: '保存' });
+        if (nm) { g.name = nm; saveS(); renderSettings(); }
+      };
+      acts.appendChild(eb);
+
+      const canDelete = !g.isGuest && !g.isPlayer;
+      const db = document.createElement('button');
+      db.className = 's-btn-delete' + (canDelete ? '' : ' disabled');
+      db.textContent = '削除';
+      if (canDelete) {
+        db.onclick = async () => {
+          if (await dialog('「' + g.name + '」を削除しますか？\nグループ内の名前も全て削除されます。', { danger: true, ok: '削除' })) {
+            g.people.forEach(p => removePerson(p.id));
+            S.groups.splice(S.groups.indexOf(g), 1);
+            S.tabOrder = S.tabOrder.filter(id => id !== g.id);
+            saveAll(); renderSettings();
+          }
+        };
+      }
+      acts.appendChild(db);
+      row.appendChild(acts);
+      initRowReorder(row, i, { dragHandle: nameEl, onTap: () => { sStack.push({ v: 'gdetail', gid: g.id }); renderSettings(); } });
+      body.appendChild(row);
+    });
+
+    const addBtn = document.createElement('button');
+    addBtn.className = 's-btn-add'; addBtn.textContent = '＋ グループ追加';
+    addBtn.onclick = async () => {
+      const nm = await dialog('グループ名を入力', { input: true, ph: 'グループ名', ok: '追加' });
+      if (nm) {
+        const g = { id: uid(), name: nm, people: [] };
+        S.groups.push(g); S.tabOrder.push(g.id);
+        saveS(); renderSettings();
+      }
+    };
+    body.appendChild(addBtn);
+
+  } else if (view === 'guide') {
+    titleEl.textContent = '使い方ガイド';
+
+    const sections = [
+      {
+        h: '① 配車画面の基本',
+        p: [
+          '上部のタイトル欄には大会名や日付などを入力できます。',
+          '学年別の人数や残席数は、下部タブの「選手」タブ内で入力します。'
+        ]
+      },
+      {
+        h: '② 名前を車に配置する',
+        p: [
+          '下部のタブを切り替えながら、名前カードを車の空き枠までドラッグして配置します。',
+          'すでに名前が入っている枠にドラッグすると、その場で入れ替わります。',
+          '配置を取り消したいときは、車内のカードを長押しして、画面下に出てくる「元に戻す」エリアまでドラッグしてください。'
+        ]
+      },
+      {
+        h: '③ 車の管理',
+        p: [
+          '「＋ 車を追加」から車種・席数を選んで追加できます。',
+          '車の名前部分を長押ししてドラッグすると、車の並び順を変更できます。',
+          '各車の右端の「削除」で、その車を削除できます（配置されていた名前は元に戻ります）。'
+        ]
+      },
+      {
+        h: '④ タブとグループ',
+        p: [
+          '「ゲスト」タブは、その場で名前カードを追加できる特別なタブです。追加した名前はリセットすると消えます。',
+          '「選手」タブでは、3・2・1年の人数と残席数を入力して「カード作成」を押すと、乗りきれない人数分の選手カードが自動的に作られます。',
+          '設定画面の「グループ設定」では、グループ（タブ）の追加・名前変更・削除や、グループ内の名前の追加・編集・削除ができます。',
+          'グループ設定画面でグループ名を長押ししてドラッグすると、タブの表示順を変更できます。'
+        ]
+      },
+      {
+        h: '⑤ 決定とコピー',
+        p: [
+          '「決定」ボタンを押すと、LINEのノートなどに貼り付けられる配車表のテキストが作成されます。',
+          '内容は画面上で直接編集できます。',
+          '「コピーする」を押すとクリップボードにコピーされ、メイン画面に戻ります。'
+        ]
+      },
+      {
+        h: '⑥ リセット',
+        p: [
+          '「リセット」を押すと、車への配置・選手カード・ゲストカードがすべて消えます。グループや車の設定自体は消えません。',
+          '操作のたびに自動保存されるため、アプリを閉じても直前の状態が保持されます。'
+        ]
+      }
+    ];
+
+    sections.forEach(sec => {
+      const box = document.createElement('div');
+      box.className = 'guide-section';
+      const h = document.createElement('h3');
+      h.textContent = sec.h;
+      box.appendChild(h);
+      sec.p.forEach(text => {
+        const p = document.createElement('p');
+        p.textContent = text;
+        box.appendChild(p);
+      });
+      body.appendChild(box);
+    });
+
+  } else if (view && view.v === 'gdetail') {
+    const g = group(view.gid);
+    if (!g) { sStack.pop(); renderSettings(); return; }
+    titleEl.textContent = g.name;
+
+    if (g.isPlayer) {
+      const note = document.createElement('div');
+      note.className = 's-note';
+      note.textContent = '選手カードはメイン画面の選手タブで作成します。内容の変更はできません。';
+      body.appendChild(note);
+      return;
+    }
+    if (g.isGuest) {
+      const note = document.createElement('div');
+      note.className = 's-note';
+      note.textContent = 'ゲストはメイン画面で追加できます。リセットすると消えます。';
+      body.appendChild(note);
+    }
+
+    g.people.forEach((p, pi) => {
+      const row = document.createElement('div');
+      row.className = 's-list-item';
+
+      const nm = document.createElement('span');
+      nm.className = 'item-name'; nm.textContent = p.name;
+      row.appendChild(nm);
+
+      const acts = document.createElement('div');
+      acts.className = 'item-actions';
+
+      const eb = document.createElement('button');
+      eb.className = 's-btn-edit'; eb.textContent = '編集';
+      eb.onclick = async () => {
+        const newNm = await dialog('名前を編集', { input: true, val: p.name, ok: '保存' });
+        if (newNm) { p.name = newNm; renamePerson(p.id, newNm); saveAll(); renderSettings(); }
+      };
+      acts.appendChild(eb);
+
+      const db = document.createElement('button');
+      db.className = 's-btn-delete'; db.textContent = '削除';
+      db.onclick = async () => {
+        if (await dialog('「' + p.name + '」を削除しますか？', { danger: true, ok: '削除' })) {
+          removePerson(p.id); g.people.splice(pi, 1); saveAll(); renderSettings();
+        }
+      };
+      acts.appendChild(db);
+      row.appendChild(acts);
+      body.appendChild(row);
+    });
+
+    const addBtn = document.createElement('button');
+    addBtn.className = 's-btn-add'; addBtn.textContent = '＋ 名前追加';
+    addBtn.onclick = async () => {
+      const nm = await dialog('名前を入力', { input: true, ph: '名前', ok: '追加' });
+      if (nm) { g.people.push({ id: uid(), name: nm }); saveS(); renderSettings(); }
+    };
+    body.appendChild(addBtn);
+
+  }
+}
+
+/* ========== Output ========== */
+const VEHICLE_ICONS = {
+  'チームトラック': '\u{1F69A}', 'チームバス': '\u{1F68C}', '軽トラ': '\u{1F69B}',
+  '選手号': '\u{1F697}', '父兄号': '\u{1F699}', '道具車': '\u{1F6FB}',
+  'フロント号': '\u{1F695}', '審判支援号': '\u{1F698}'
+};
+
+function vehicleIcon(name) {
+  for (const key in VEHICLE_ICONS) { if (name.indexOf(key) !== -1) return VEHICLE_ICONS[key]; }
+  return '\u{1F698}';
+}
+
+function isPlayerCard(s) {
+  if (!s) return false;
+  const pg = S.groups.find(g => g.isPlayer);
+  return pg ? pg.people.some(p => p.id === s.personId) : false;
+}
+
+function genText() {
+  const title = SS.title || '配車表';
+  const lines = [title + 'の配車です。', ''];
+  const pg = S.groups.find(g => g.isPlayer);
+
+  SS.vehicles.forEach(v => {
+    const lbl = vehicleLabel(v);
+    const baseName = v.typeName;
+    const isBus = baseName.indexOf('バス') !== -1;
+    const icon = vehicleIcon(baseName);
+    const people = [];
+    const gc = {};
+    let driver = null;
+
+    v.slots.forEach((s, i) => {
+      if (!s) return;
+      if (pg) { const pp = pg.people.find(p => p.id === s.personId); if (pp && pp.grade) { gc[pp.grade] = (gc[pp.grade] || 0) + 1; return; } }
+      if (i === 0) driver = s.name;
+      else people.push(s.name);
+    });
+
+    const hasContent = driver || people.length || Object.keys(gc).length;
+    if (!hasContent) return;
+
+    lines.push(lbl);
+    if (isBus) {
+      if (driver) lines.push(icon + driver);
+      for (let i = 0; i < people.length; i += 2) {
+        lines.push(people.slice(i, i + 2).join('　'));
+      }
+    } else {
+      const all = [];
+      if (driver) all.push(icon + driver);
+      all.push(...people);
+      for (let i = 0; i < all.length; i += 2) {
+        lines.push(all.slice(i, i + 2).join('　'));
+      }
+    }
+
+    const gp = [];
+    if (gc[3]) gp.push('3年選手' + gc[3] + '人');
+    if (gc[2]) gp.push('2年選手' + gc[2] + '人');
+    if (gc[1]) gp.push('1年選手' + gc[1] + '人');
+    if (gp.length) lines.push(gp.join('　'));
+    lines.push('');
+  });
+
+  return lines.join('\n');
+}
+
+/* ========== Reset ========== */
+async function doReset() {
+  if (!await dialog('全ての配車情報をリセットしますか？\n車の配置・選手・ゲストが全てクリアされます。', { danger: true, ok: 'リセット' })) return;
+  const gg = S.groups.find(g => g.isGuest);
+  if (gg) gg.people = [];
+  const pg = S.groups.find(g => g.isPlayer);
+  if (pg) pg.people = [];
+  saveS();
+  SS = defaultSession();
+  if (S.tabOrder.length) SS.activeTab = S.tabOrder[0];
+  saveSS();
+  renderAll();
+  toast('リセットしました');
+}
+
+/* ========== Event Listeners ========== */
+$('btnReset').onclick = doReset;
+$('btnSettings').onclick = openSettings;
+$('btnDecide').onclick = () => { $('output-text').value = genText(); showScreen('output'); };
+
+$('settingsBack').onclick = () => {
+  if (sStack.length > 1) { sStack.pop(); renderSettings(); }
+  else { showScreen('app'); renderAll(); }
+};
+$('settingsToMain').onclick = () => { showScreen('app'); renderAll(); };
+
+$('outputBack').onclick = () => showScreen('app');
+$('outputBackBtn').onclick = () => showScreen('app');
+$('outputToMain').onclick = () => showScreen('app');
+$('outputCopyBtn').onclick = async () => {
+  const txt = $('output-text').value;
+  try { await navigator.clipboard.writeText(txt); }
+  catch { $('output-text').select(); document.execCommand('copy'); }
+  toast('コピーが完了しました');
+  setTimeout(() => showScreen('app'), 1200);
+};
+
+$('titleInput').oninput = e => { SS.title = e.target.value; saveSS(); };
+
+$('pickerOverlay').onclick = e => { if (e.target === e.currentTarget) e.currentTarget.classList.remove('active'); };
+
+window.addEventListener('beforeunload', e => {
+  if (SS.vehicles.length || SS.title) { e.preventDefault(); e.returnValue = ''; }
+});
+
+/* ========== Init ========== */
+load();
+renderAll();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
