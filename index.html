@@ -152,8 +152,7 @@ button{cursor:pointer;border:none;background:none;outline:none}
 .s-list-item .item-sub{font-size:12px;color:var(--text-faint);font-weight:600}
 .s-list-item .item-actions{display:flex;gap:6px}
 .s-list-item .item-actions button{padding:6px 11px;border-radius:8px;font-size:12px;font-weight:700}
-.tr-row{position:relative}
-.s-list-item.dragging-v{box-shadow:var(--shadow-float);z-index:5;transition:none}
+.s-list-item.dragging-v{opacity:.5}
 .s-list-item.drop-above{box-shadow:0 -3px 0 0 var(--primary),var(--shadow-card)}
 .s-list-item.drop-below{box-shadow:0 3px 0 0 var(--primary),var(--shadow-card)}
 .s-btn-edit{background:var(--primary-tint);color:var(--primary-dark)}
@@ -872,7 +871,6 @@ function initRowReorder(row, idx, opts) {
     }
     if (!TR.active) return;
     TR.lastX = e.clientX; TR.lastY = e.clientY;
-    row.style.transform = 'translateY(' + (e.clientY - TR.sy) + 'px)';
     trFindTarget(e.clientX, e.clientY, row);
     trAutoScroll(e.clientY);
   });
@@ -888,7 +886,6 @@ function initRowReorder(row, idx, opts) {
       return;
     }
     row.classList.remove('dragging-v');
-    row.style.transform = '';
     const rows = $('settingsBody').querySelectorAll('.tr-row');
     let targetIdx = -1, above = false;
     rows.forEach((r, i) => {
@@ -980,6 +977,7 @@ function autoScrollTick() {
 }
 
 function updateAutoScroll(y) {
+  if (Date.now() - D.startTime < 400) return;
   const rect = $('sec-vehicles').getBoundingClientRect();
   const edge = 45;
   let spd = 0;
@@ -1001,6 +999,7 @@ function stopAutoScroll() {
 
 function startDrag(x, y) {
   D.active = true;
+  D.startTime = Date.now();
   cloneEl.textContent = D.nm;
   cloneEl.style.cssText = 'display:block;left:' + x + 'px;top:' + y + 'px';
 }
