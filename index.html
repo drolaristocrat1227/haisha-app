@@ -35,7 +35,8 @@ button{cursor:pointer;border:none;background:none;outline:none}
 #sec-header .btn-reset{justify-self:start;background:var(--danger-tint);color:var(--danger);border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;white-space:nowrap}
 #sec-header .btn-reset:active{background:#f8d2da}
 #sec-header h2{font-size:15px;font-weight:700;text-align:center;letter-spacing:.5px;white-space:nowrap}
-#sec-header .btn-settings{justify-self:end;font-size:20px;padding:4px 2px;color:var(--text-soft);line-height:1}
+#sec-header .btn-settings{justify-self:end;padding:4px 2px;color:var(--text-soft);line-height:1;display:flex;align-items:center}
+#sec-header .btn-settings svg{width:21px;height:21px}
 
 /* Title bar */
 #sec-title-bar{flex:0 0 auto;padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border)}
@@ -67,9 +68,10 @@ button{cursor:pointer;border:none;background:none;outline:none}
 .vehicle-block.drop-below{box-shadow:0 3px 0 0 var(--primary),var(--shadow-card)}
 
 /* Section 4: Cards */
-#sec-cards{flex:0 0 40%;display:flex;flex-direction:column;background:var(--surface);border-top:1px solid var(--border)}
-#card-tabs{flex:0 0 auto;display:flex;overflow-x:auto;border-bottom:1px solid var(--border);background:var(--surface-alt);-webkit-overflow-scrolling:touch;scrollbar-width:none}
+#sec-cards{flex:0 0 var(--cards-h,40%);display:flex;flex-direction:column;background:var(--surface);border-top:1px solid var(--border)}
+#card-tabs{flex:0 0 auto;display:flex;overflow-x:auto;border-bottom:1px solid var(--border);background:var(--surface-alt);-webkit-overflow-scrolling:touch;scrollbar-width:none;transition:background .15s}
 #card-tabs::-webkit-scrollbar{display:none}
+#card-tabs.resizing{background:var(--primary-tint)}
 .tab-btn{padding:9px 14px;font-size:12px;font-weight:700;color:var(--text-faint);white-space:nowrap;border-bottom:2.5px solid transparent;margin-bottom:-1px;transition:color .15s,border-color .15s;flex-shrink:0}
 .tab-btn.active{color:var(--primary-dark);border-bottom-color:var(--primary)}
 #card-area{flex:1;overflow-y:auto;padding:10px;-webkit-overflow-scrolling:touch;position:relative}
@@ -186,7 +188,7 @@ button{cursor:pointer;border:none;background:none;outline:none}
   <div id="sec-header">
     <button class="btn-reset" id="btnReset">リセット</button>
     <h2>配車画面</h2>
-    <button class="btn-settings" id="btnSettings">⚙</button>
+    <button class="btn-settings" id="btnSettings"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14,12.94c0.04,-0.3,0.06,-0.61,0.06,-0.94c0,-0.32,-0.02,-0.64,-0.07,-0.94l2.03,-1.58c0.18,-0.14,0.23,-0.41,0.12,-0.61l-1.92,-3.32c-0.12,-0.22,-0.37,-0.29,-0.59,-0.22l-2.39,0.96c-0.5,-0.38,-1.03,-0.7,-1.62,-0.94L14.4,2.81c-0.04,-0.24,-0.24,-0.41,-0.48,-0.41h-3.84c-0.24,0,-0.43,0.17,-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22,-0.08,-0.47,0,-0.59,0.22L2.74,8.87C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58c-0.18,0.14,-0.23,0.41,-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39,-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44,-0.17,0.47,-0.41l0.36,-2.54c0.59,-0.24,1.13,-0.56,1.62,-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59,-0.22l1.92,-3.32c0.12,-0.22,0.07,-0.47,-0.12,-0.61L19.14,12.94z M12,15.6c-1.98,0,-3.6,-1.62,-3.6,-3.6s1.62,-3.6,3.6,-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg></button>
   </div>
   <div id="sec-title-bar">
     <input type="text" class="title-input" id="titleInput" placeholder="タイトルを入力">
@@ -724,6 +726,66 @@ function initVehicleReorder(hdr, block, vi) {
   hdr.addEventListener('pointercancel', endReorder);
 }
 
+/* ========== Cards Section Resize (long-press on group tabs) ========== */
+const CR = { active: false, scrolling: false, timer: null, pointerId: -1, sx: 0, sy: 0, lx: 0, totalH: 0, startCardsH: 0 };
+const CARDS_H_KEY = 'haisha_cards_h';
+const CARDS_H_MIN = 18, CARDS_H_MAX = 70;
+
+function applyCardsHeight(pct) {
+  document.documentElement.style.setProperty('--cards-h', pct + '%');
+}
+
+function loadCardsHeight() {
+  const v = parseFloat(localStorage.getItem(CARDS_H_KEY));
+  if (!isNaN(v) && v >= CARDS_H_MIN && v <= CARDS_H_MAX) applyCardsHeight(v);
+}
+
+function initCardsResize() {
+  const tabs = $('card-tabs');
+  tabs.style.touchAction = 'none';
+
+  tabs.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    CR.sx = e.clientX; CR.sy = e.clientY; CR.lx = e.clientX; CR.pointerId = e.pointerId; CR.active = false; CR.scrolling = false;
+    CR.timer = setTimeout(() => {
+      CR.active = true;
+      tabs.setPointerCapture(e.pointerId);
+      tabs.classList.add('resizing');
+      CR.startCardsH = $('sec-cards').getBoundingClientRect().height;
+      CR.totalH = CR.startCardsH + $('sec-vehicles').getBoundingClientRect().height;
+    }, 400);
+  });
+  tabs.addEventListener('pointermove', e => {
+    if (e.pointerId !== CR.pointerId) return;
+    if (!CR.active && CR.timer) {
+      if (Math.abs(e.clientX - CR.sx) > 8 || Math.abs(e.clientY - CR.sy) > 8) { clearTimeout(CR.timer); CR.timer = null; CR.scrolling = true; }
+    }
+    if (!CR.active && CR.scrolling) {
+      tabs.scrollLeft -= (e.clientX - CR.lx);
+      CR.lx = e.clientX;
+      return;
+    }
+    if (!CR.active) return;
+    const dy = e.clientY - CR.sy;
+    const minPx = CR.totalH * (CARDS_H_MIN / 100), maxPx = CR.totalH * (CARDS_H_MAX / 100);
+    const newH = Math.max(minPx, Math.min(maxPx, CR.startCardsH - dy));
+    applyCardsHeight((newH / CR.totalH * 100).toFixed(2));
+  });
+  const endResize = e => {
+    if (e.pointerId !== CR.pointerId) return;
+    if (CR.timer) { clearTimeout(CR.timer); CR.timer = null; }
+    CR.scrolling = false;
+    if (CR.active) {
+      tabs.classList.remove('resizing');
+      const pct = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cards-h'));
+      if (!isNaN(pct)) localStorage.setItem(CARDS_H_KEY, pct);
+    }
+    CR.active = false; CR.pointerId = -1;
+  };
+  tabs.addEventListener('pointerup', endResize);
+  tabs.addEventListener('pointercancel', endResize);
+}
+
 /* ========== Tab Order Reorder (shared by グループ設定 / タブ順序設定) ========== */
 const TR = { active: false, scrolling: false, timer: null, idx: -1, row: null, pointerId: -1, sx: 0, sy: 0, ly: 0, lastX: 0, lastY: 0, raf: null, spd: 0 };
 
@@ -767,13 +829,17 @@ function trStopScroll() {
   if (TR.raf) { cancelAnimationFrame(TR.raf); TR.raf = null; }
 }
 
-// row: the element whose classes (dragging-v / drop-above / drop-below) get visual feedback, and which is the unit being moved in S.tabOrder
-// idx: this row's current position within S.tabOrder
+// row: the element whose classes (dragging-v / drop-above / drop-below) get visual feedback, and which is the unit being moved in opts.array
+// idx: this row's current position within opts.array
 // opts.dragHandle: the element that listens for the long-press (defaults to row itself)
 // opts.onTap: called when the gesture turns out to be a short tap (not a drag) - used for "tap to open" rows
+// opts.array: the array being reordered (defaults to S.tabOrder)
+// opts.save: called after the array is reordered to persist it (defaults to saveS)
 function initRowReorder(row, idx, opts) {
   opts = opts || {};
   const handle = opts.dragHandle || row;
+  const arr = opts.array || S.tabOrder;
+  const save = opts.save || saveS;
   handle.style.touchAction = 'none';
   handle.style.userSelect = 'none';
   row.classList.add('tr-row');
@@ -822,11 +888,11 @@ function initRowReorder(row, idx, opts) {
       r.classList.remove('drop-above', 'drop-below');
     });
     if (targetIdx >= 0 && targetIdx !== TR.idx) {
-      const moved = S.tabOrder.splice(TR.idx, 1)[0];
+      const moved = arr.splice(TR.idx, 1)[0];
       let ins = targetIdx > TR.idx ? targetIdx - 1 : targetIdx;
       if (!above) ins++;
-      S.tabOrder.splice(ins, 0, moved);
-      saveS(); renderSettings();
+      arr.splice(ins, 0, moved);
+      save(); renderSettings();
     }
     TR.active = false; TR.pointerId = -1;
   };
@@ -1113,7 +1179,8 @@ function renderSettings() {
         h: '① 配車画面の基本',
         p: [
           '上部のタイトル欄には大会名や日付などを入力できます。',
-          '学年別の人数や残席数は、下部タブの「選手」タブ内で入力します。'
+          '学年別の人数や残席数は、下部タブの「選手」タブ内で入力します。',
+          '下部の名前カード欄の、タブが並んでいる部分を長押ししてドラッグすると、車エリアと名前カードエリアの高さを変更できます。変更した高さはリセットしても維持されます。'
         ]
       },
       {
@@ -1138,7 +1205,8 @@ function renderSettings() {
           '「ゲスト」タブは、その場で名前カードを追加できる特別なタブです。追加した名前はリセットすると消えます。',
           '「選手」タブでは、3・2・1年の人数と残席数を入力して「カード作成」を押すと、乗りきれない人数分の選手カードが自動的に作られます。',
           '設定画面の「グループ設定」では、グループ（タブ）の追加・名前変更・削除や、グループ内の名前の追加・編集・削除ができます。',
-          'グループ設定画面でグループ名を長押ししてドラッグすると、タブの表示順を変更できます。'
+          'グループ設定画面でグループ名を長押ししてドラッグすると、タブの表示順を変更できます。',
+          'グループ内の名前一覧でも、名前を長押ししてドラッグすると並び順を変更できます。'
         ]
       },
       {
@@ -1219,6 +1287,7 @@ function renderSettings() {
       };
       acts.appendChild(db);
       row.appendChild(acts);
+      initRowReorder(row, pi, { dragHandle: nm, array: g.people, save: saveS });
       body.appendChild(row);
     });
 
@@ -1348,7 +1417,9 @@ window.addEventListener('beforeunload', e => {
 
 /* ========== Init ========== */
 load();
+loadCardsHeight();
 renderAll();
+initCardsResize();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>
 </body>
