@@ -1119,7 +1119,7 @@ function renderSettings() {
     titleEl.textContent = 'グループ設定';
     const note = document.createElement('div');
     note.className = 's-note';
-    note.textContent = 'グループ名をタップすると名前カードを管理できます。長押ししてドラッグすると順番を変更できます。';
+    note.textContent = 'グループ名をタップするとグループ名を編集できます。編集ボタンで名前カードを管理できます。長押ししてドラッグすると順番を変更できます。';
     body.appendChild(note);
 
     const ordered = S.tabOrder.map(id => group(id)).filter(Boolean);
@@ -1141,10 +1141,7 @@ function renderSettings() {
 
       const eb = document.createElement('button');
       eb.className = 's-btn-edit'; eb.textContent = '編集';
-      eb.onclick = async () => {
-        const nm = await dialog('グループ名を編集', { input: true, val: g.name, ok: '保存' });
-        if (nm) { g.name = nm; saveS(); renderSettings(); }
-      };
+      eb.onclick = () => { sStack.push({ v: 'gdetail', gid: g.id }); renderSettings(); };
       acts.appendChild(eb);
 
       const canDelete = !g.isGuest && !g.isPlayer;
@@ -1163,7 +1160,10 @@ function renderSettings() {
       }
       acts.appendChild(db);
       row.appendChild(acts);
-      initRowReorder(row, i, { dragHandle: nameEl, onTap: () => { sStack.push({ v: 'gdetail', gid: g.id }); renderSettings(); } });
+      initRowReorder(row, i, { dragHandle: nameEl, onTap: async () => {
+        const newNm = await dialog('グループ名を編集', { input: true, val: g.name, ok: '保存' });
+        if (newNm) { g.name = newNm; saveS(); renderSettings(); }
+      } });
       body.appendChild(row);
     });
 
@@ -1212,9 +1212,10 @@ function renderSettings() {
         p: [
           '「ゲスト」タブは、その場で名前カードを追加できる特別なタブです。追加した名前はリセットすると消えます。',
           '「選手」タブでは、3・2・1年の人数と残席数を入力して「カード作成」を押すと、乗りきれない人数分の選手カードが自動的に作られます。',
-          '設定画面の「グループ設定」では、グループ（タブ）の追加・名前変更・削除や、グループ内の名前の追加・編集・削除ができます。',
-          'グループ設定画面でグループ名を長押ししてドラッグすると、タブの表示順を変更できます。',
-          'グループ内の名前一覧でも、名前を長押ししてドラッグすると並び順を変更できます。'
+          '設定画面の「グループ設定」では、グループ（タブ）の追加・削除や、グループ内の名前の追加・編集・削除ができます。',
+          'グループ名をタップするとグループ名を編集できます。「編集」ボタンを押すとグループ内の名前カード管理画面に進みます。',
+          'グループ名を長押ししてドラッグすると、タブの表示順を変更できます。',
+          '名前カード管理画面では、名前をタップまたは「編集」ボタンで名前を変更できます。名前を長押ししてドラッグすると並び順を変更できます。'
         ]
       },
       {
@@ -1295,7 +1296,10 @@ function renderSettings() {
       };
       acts.appendChild(db);
       row.appendChild(acts);
-      initRowReorder(row, pi, { dragHandle: nm, array: g.people, save: saveS });
+      initRowReorder(row, pi, { dragHandle: nm, array: g.people, save: saveS, onTap: async () => {
+        const newNm = await dialog('名前を編集', { input: true, val: p.name, ok: '保存' });
+        if (newNm) { p.name = newNm; renamePerson(p.id, newNm); saveAll(); renderSettings(); }
+      } });
       body.appendChild(row);
     });
 
