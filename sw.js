@@ -1,4 +1,4 @@
-const CACHE_NAME = 'haisha-v3';
+const CACHE_NAME = 'haisha-v4';
 const ASSETS = ['./index.html'];
 
 self.addEventListener('install', e => {
