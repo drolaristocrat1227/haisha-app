@@ -83,6 +83,11 @@ button{cursor:pointer;border:none;background:none;outline:none}
 .person-card.guest-card{border-color:var(--guest);color:var(--guest);background:var(--guest-tint)}
 .vehicle-slot.holding{box-shadow:0 2px 8px rgba(28,59,50,.2);transform:scale(.95)}
 .btn-add-guest{padding:8px 13px;background:var(--guest-tint);border:1.5px dashed var(--guest);border-radius:18px;font-size:12px;color:var(--guest);font-weight:700}
+.btn-add-card{padding:8px 13px;background:var(--primary-tint);border:1.5px dashed var(--primary);border-radius:18px;font-size:12px;color:var(--primary-dark);font-weight:700}
+.btn-add-card:active{opacity:.7}
+.person-card.card-reordering{opacity:.3}
+.person-card.card-drop-before{box-shadow:-3px 0 0 0 var(--primary),0 1px 3px rgba(28,59,50,.06)}
+.person-card.card-drop-after{box-shadow:3px 0 0 0 var(--primary),0 1px 3px rgba(28,59,50,.06)}
 .person-card.player-card{border-color:var(--player);color:var(--player);background:var(--player-tint)}
 .player-controls{padding:10px;background:var(--player-tint);border-bottom:1px solid #f5d9bf;width:100%;border-radius:12px;margin-bottom:8px}
 .player-row{display:flex;align-items:center;gap:7px;justify-content:center;flex-wrap:wrap}
@@ -597,14 +602,6 @@ function renderCards() {
     grid.appendChild(ctrl);
   }
 
-  if (g.people.length === 0 && !g.isGuest && !g.isPlayer) {
-    const hint = document.createElement('div');
-    hint.className = 'empty-hint';
-    hint.textContent = '設定画面から名前を追加してください';
-    grid.appendChild(hint);
-    return;
-  }
-
   g.people.forEach(p => {
     const card = document.createElement('div');
     card.className = 'person-card' + (g.isGuest ? ' guest-card' : '') + (g.isPlayer ? ' player-card' : '');
@@ -617,12 +614,12 @@ function renderCards() {
     grid.appendChild(card);
   });
 
-  if (g.isGuest) {
+  if (!g.isPlayer) {
     const btn = document.createElement('button');
-    btn.className = 'btn-add-guest';
-    btn.textContent = '＋ ゲスト追加';
+    btn.className = g.isGuest ? 'btn-add-guest' : 'btn-add-card';
+    btn.textContent = '＋ 追加';
     btn.onclick = async () => {
-      const nm = await dialog('ゲストの名前を入力', { input: true, ph: '名前', ok: '追加' });
+      const nm = await dialog(g.isGuest ? 'ゲストの名前を入力' : '名前を入力', { input: true, ph: '名前', ok: '追加' });
       if (nm) { g.people.push({ id: uid(), name: nm }); saveS(); renderCards(); }
     };
     grid.appendChild(btn);
@@ -933,7 +930,7 @@ function generatePlayerCards(inp) {
 }
 
 /* ========== Pointer Drag & Drop ========== */
-const D = { active: false, scrolling: false, timer: null, sx: 0, sy: 0, ly: 0, pid: null, gid: null, nm: null, src: null, vi: 0, si: 0, scrollEl: null, holdEl: null, pointerId: -1, targetSlot: null, targetReturn: false };
+const D = { active: false, scrolling: false, timer: null, sx: 0, sy: 0, ly: 0, pid: null, gid: null, nm: null, src: null, vi: 0, si: 0, scrollEl: null, holdEl: null, pointerId: -1, targetSlot: null, targetReturn: false, targetCard: null, targetCardBefore: false };
 const cloneEl = $('drag-clone');
 const retZone = $('return-zone');
 
@@ -1002,6 +999,7 @@ function startDrag(x, y) {
   D.startTime = Date.now();
   cloneEl.textContent = D.nm;
   cloneEl.style.cssText = 'display:block;left:' + x + 'px;top:' + y + 'px';
+  if (D.src === 'card' && D.holdEl) D.holdEl.classList.add('card-reordering');
 }
 
 function findDropTarget(x, y) {
@@ -1010,9 +1008,11 @@ function findDropTarget(x, y) {
   cloneEl.style.display = 'block';
 
   document.querySelectorAll('.drop-hover').forEach(s => s.classList.remove('drop-hover'));
+  document.querySelectorAll('.card-drop-before,.card-drop-after').forEach(c => c.classList.remove('card-drop-before','card-drop-after'));
   retZone.classList.remove('hover');
   D.targetSlot = null;
   D.targetReturn = false;
+  D.targetCard = null;
 
   if (!hit) return;
 
@@ -1029,6 +1029,30 @@ function findDropTarget(x, y) {
   if (onReturn) {
     retZone.classList.add('hover');
     D.targetReturn = true;
+  }
+
+  if (D.src === 'card' && !D.targetSlot && !D.targetReturn) {
+    const area = $('card-area');
+    if (area) {
+      const ar = area.getBoundingClientRect();
+      if (x >= ar.left && x <= ar.right && y >= ar.top && y <= ar.bottom) {
+        const cards = Array.from($('card-grid').querySelectorAll('.person-card'));
+        let bestCard = null, bestDist = Infinity;
+        cards.forEach(card => {
+          if (card.dataset.pid === D.pid) return;
+          const r = card.getBoundingClientRect();
+          const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+          const dist = Math.hypot(x - cx, y - cy);
+          if (dist < bestDist) { bestDist = dist; bestCard = card; }
+        });
+        if (bestCard) {
+          const r = bestCard.getBoundingClientRect();
+          D.targetCardBefore = x < r.left + r.width / 2;
+          D.targetCard = bestCard;
+          bestCard.classList.add(D.targetCardBefore ? 'card-drop-before' : 'card-drop-after');
+        }
+      }
+    }
   }
 }
 
@@ -1063,17 +1087,31 @@ function onPtrMove(e) {
 function onPtrEnd(e) {
   if (e.pointerId !== D.pointerId) return;
   if (D.timer) { clearTimeout(D.timer); D.timer = null; }
-  if (D.holdEl) { D.holdEl.classList.remove('holding'); D.holdEl = null; }
+  if (D.holdEl) { D.holdEl.classList.remove('holding', 'card-reordering'); D.holdEl = null; }
   if (!D.active) { D.scrolling = false; D.pointerId = -1; stopAutoScroll(); return; }
 
   stopAutoScroll();
   cloneEl.style.display = 'none';
   document.querySelectorAll('.drop-hover').forEach(s => s.classList.remove('drop-hover'));
+  document.querySelectorAll('.card-drop-before,.card-drop-after').forEach(c => c.classList.remove('card-drop-before','card-drop-after'));
 
   const t = D.targetSlot;
   if (D.src === 'card' && t) {
     SS.vehicles[t.vi].slots[t.si] = { personId: D.pid, groupId: D.gid, name: D.nm };
     saveSS(); renderAll();
+  } else if (D.src === 'card' && D.targetCard) {
+    const g = group(SS.activeTab);
+    if (g) {
+      const srcIdx = g.people.findIndex(p => p.id === D.pid);
+      const dstPid = D.targetCard.dataset.pid;
+      let dstIdx = g.people.findIndex(p => p.id === dstPid);
+      if (srcIdx >= 0 && dstIdx >= 0 && srcIdx !== dstIdx) {
+        const moved = g.people.splice(srcIdx, 1)[0];
+        dstIdx = g.people.findIndex(p => p.id === dstPid);
+        g.people.splice(D.targetCardBefore ? dstIdx : dstIdx + 1, 0, moved);
+        saveS(); renderAll();
+      }
+    }
   } else if (D.src === 'slot' && t) {
     const src = SS.vehicles[D.vi].slots[D.si];
     const dst = SS.vehicles[t.vi].slots[t.si];
@@ -1087,7 +1125,7 @@ function onPtrEnd(e) {
 
   retZone.classList.remove('visible', 'hover');
   D.active = false; D.scrolling = false; D.src = null; D.pointerId = -1;
-  D.targetSlot = null; D.targetReturn = false;
+  D.targetSlot = null; D.targetReturn = false; D.targetCard = null;
 }
 
 /* ========== Settings ========== */
