@@ -64,9 +64,9 @@ button{cursor:pointer;border:none;background:none;outline:none}
 .btn-add-vehicle{width:100%;padding:11px;border:2px dashed var(--border-soft);border-radius:12px;color:var(--text-soft);font-size:13px;background:var(--surface-alt);font-weight:700;margin-top:2px}
 .btn-add-vehicle:active{background:var(--primary-tint);border-color:var(--primary)}
 .empty-hint{text-align:center;color:var(--text-faint);font-size:12px;padding:30px 10px;line-height:1.6}
-.vehicle-block.dragging-v{opacity:.5}
-.vehicle-block.drop-above{box-shadow:0 -3px 0 0 var(--primary),var(--shadow-card)}
-.vehicle-block.drop-below{box-shadow:0 3px 0 0 var(--primary),var(--shadow-card)}
+.vehicle-block.dragging-v{opacity:.4;transform:scale(.98)}
+.drop-indicator{height:3px;background:var(--primary);border-radius:0 3px 3px 0;margin:4px 0;position:relative;pointer-events:none}
+.drop-indicator::before{content:'';position:absolute;left:-3px;top:-4.5px;width:11px;height:11px;background:var(--primary);border-radius:50%}
 
 /* Section 4: Cards */
 #sec-cards{flex:0 0 var(--cards-h,40%);min-height:0;overflow:hidden;display:flex;flex-direction:column;background:var(--surface);border-top:1px solid var(--border)}
@@ -629,18 +629,24 @@ function renderCards() {
 const CN = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩','⑪','⑫','⑬','⑭','⑮','⑯','⑰','⑱','⑲','⑳'];
 
 /* ========== Vehicle Reorder ========== */
-const VR = { active: false, scrolling: false, timer: null, vi: -1, block: null, pointerId: -1, sy: 0, ly: 0, lastX: 0, lastY: 0, raf: null, spd: 0 };
+const VR = { active: false, scrolling: false, timer: null, vi: -1, block: null, pointerId: -1, sy: 0, ly: 0, lastX: 0, lastY: 0, raf: null, spd: 0, targetIdx: -1, targetAbove: false };
 
 function vrFindTarget(x, y, block) {
-  const blocks = $('sec-vehicles').querySelectorAll('.vehicle-block');
-  blocks.forEach(b => b.classList.remove('drop-above', 'drop-below'));
+  const sec = $('sec-vehicles');
+  const existing = sec.querySelector('.drop-indicator');
+  if (existing) existing.remove();
+  VR.targetIdx = -1;
   const el = document.elementFromPoint(x, y);
   if (el) {
     const tb = el.closest('.vehicle-block');
     if (tb && tb !== block) {
+      const blocks = Array.from(sec.querySelectorAll('.vehicle-block'));
       const r = tb.getBoundingClientRect();
-      if (y < r.top + r.height / 2) tb.classList.add('drop-above');
-      else tb.classList.add('drop-below');
+      VR.targetAbove = y < r.top + r.height / 2;
+      VR.targetIdx = blocks.indexOf(tb);
+      const ind = document.createElement('div');
+      ind.className = 'drop-indicator';
+      if (VR.targetAbove) tb.before(ind); else tb.after(ind);
     }
   }
 }
@@ -704,17 +710,13 @@ function initVehicleReorder(hdr, block, vi) {
     VR.scrolling = false;
     if (!VR.active) { VR.pointerId = -1; return; }
     VR.block.classList.remove('dragging-v');
-    const blocks = $('sec-vehicles').querySelectorAll('.vehicle-block');
-    let targetIdx = -1, above = false;
-    blocks.forEach((b, idx) => {
-      if (b.classList.contains('drop-above')) { targetIdx = idx; above = true; }
-      if (b.classList.contains('drop-below')) { targetIdx = idx; above = false; }
-      b.classList.remove('drop-above', 'drop-below');
-    });
-    if (targetIdx >= 0 && targetIdx !== VR.vi) {
+    const ind = $('sec-vehicles').querySelector('.drop-indicator');
+    if (ind) ind.remove();
+    const ti = VR.targetIdx;
+    if (ti >= 0 && ti !== VR.vi) {
       const moved = SS.vehicles.splice(VR.vi, 1)[0];
-      let ins = targetIdx > VR.vi ? targetIdx - 1 : targetIdx;
-      if (!above) ins++;
+      let ins = ti > VR.vi ? ti - 1 : ti;
+      if (!VR.targetAbove) ins++;
       SS.vehicles.splice(ins, 0, moved);
       saveSS(); renderAll();
     }
