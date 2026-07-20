@@ -344,7 +344,8 @@ function defaultSettings() {
       { id: 'g_guest', name: 'ゲスト', people: [], isGuest: true }
     ],
     tabOrder: ['g_player', 'g_staff', 'g_p3', 'g_p2', 'g_p1', 'g_guest'],
-    driverPriority: {}
+    driverPriority: {},
+    managerList: []
   };
 }
 
@@ -374,6 +375,7 @@ function load() {
   ids.forEach(id => { if (!S.tabOrder.includes(id)) S.tabOrder.push(id); });
   if (SS.playerSeats === undefined) SS.playerSeats = '';
   if (!S.driverPriority) S.driverPriority = {};
+  if (!S.managerList) S.managerList = [];
   if (!SS.attending) SS.attending = [];
 }
 
@@ -1441,13 +1443,22 @@ function runAutoAssign() {
   if (busV) {
     const drv = getDriver('チームバス');
     if (drv) { busV.slots[0] = { personId: drv.id, name: drv.name, groupId: drv.groupId }; assigned.add(drv.id); }
-    fillSlots(busV, [...staffPool, ...otherPool, ...allParents, ...guestPool]);
+    fillSlots(busV, [...staffPool]);
   }
 
   const truckV = SS.vehicles.find(v => v.typeName === 'チームトラック');
   if (truckV) {
     const drv = getDriver('チームトラック');
     if (drv) { truckV.slots[0] = { personId: drv.id, name: drv.name, groupId: drv.groupId }; assigned.add(drv.id); }
+    // マネージャーを運転席以外の席に優先配車
+    (S.managerList || []).forEach(pid => {
+      if (!attSet.has(pid) || assigned.has(pid)) return;
+      const person = findPersonById(pid);
+      if (!person) return;
+      for (let si = 1; si < truckV.capacity; si++) {
+        if (!truckV.slots[si]) { truckV.slots[si] = { personId: person.id, name: person.name, groupId: person.groupId }; assigned.add(person.id); break; }
+      }
+    });
     fillSlots(truckV, [...staffPool, ...otherPool]);
   }
 
@@ -1468,23 +1479,27 @@ function runAutoAssign() {
   });
 
   SS.vehicles.filter(v => v.typeName === '父兄号').forEach(v => {
-    const drv = getDriver('父兄号');
-    let driverGrade = null;
+    const lim = v.capacity >= 7 ? 6 : v.capacity;
+    // 現時点で未配車の人数が最も多い学年を優先して乗せる
+    const gcounts = { 3: parentPool[3].filter(p => !assigned.has(p.id)).length, 2: parentPool[2].filter(p => !assigned.has(p.id)).length, 1: parentPool[1].filter(p => !assigned.has(p.id)).length };
+    const primaryGrade = [3, 2, 1].reduce((best, gr) => gcounts[gr] > gcounts[best] ? gr : best, 3);
+    let drv = getDriver('父兄号');
+    let driverGrade = primaryGrade;
     if (drv) {
       v.slots[0] = { personId: drv.id, name: drv.name, groupId: drv.groupId }; assigned.add(drv.id);
-      driverGrade = [3, 2, 1].find(gr => parentPool[gr].some(p => p.id === drv.id)) || null;
+      driverGrade = [3, 2, 1].find(gr => parentPool[gr].some(p => p.id === drv.id)) || primaryGrade;
     } else {
-      const firstParent = allParents.find(p => !assigned.has(p.id));
-      if (firstParent) {
-        v.slots[0] = { personId: firstParent.id, name: firstParent.name, groupId: firstParent.groupId };
-        assigned.add(firstParent.id);
-        driverGrade = firstParent.parentGrade || null;
+      const primaryPool = parentPool[primaryGrade].filter(p => !assigned.has(p.id));
+      if (primaryPool.length > 0) {
+        const fp = primaryPool[0]; v.slots[0] = { personId: fp.id, name: fp.name, groupId: fp.groupId }; assigned.add(fp.id);
+      } else {
+        const anyP = allParents.find(p => !assigned.has(p.id));
+        if (anyP) { v.slots[0] = { personId: anyP.id, name: anyP.name, groupId: anyP.groupId }; assigned.add(anyP.id); driverGrade = anyP.parentGrade || primaryGrade; }
       }
     }
-    const lim = v.capacity >= 7 ? 6 : v.capacity;
-    const gradeFirst = driverGrade ? parentPool[driverGrade].filter(p => !assigned.has(p.id)) : [];
-    const rest = allParents.filter(p => !assigned.has(p.id) && (!driverGrade || p.parentGrade !== driverGrade));
-    fillSlots(v, [...gradeFirst, ...rest], lim);
+    const sameGrade = parentPool[driverGrade].filter(p => !assigned.has(p.id));
+    const otherGrades = [3, 2, 1].filter(gr => gr !== driverGrade).flatMap(gr => parentPool[gr].filter(p => !assigned.has(p.id)));
+    fillSlots(v, [...sameGrade, ...otherGrades], lim);
   });
 
   SS.vehicles.filter(v => v.typeName === '選手号').forEach(v => {
@@ -1604,6 +1619,13 @@ function renderSettings() {
     note.className = 's-note';
     note.textContent = '各車種の運転手候補を優先順に設定します。自動配車時に上位から順に割り当てられます。';
     body.appendChild(note);
+    // マネージャー枠（特別項目）
+    const mgEl = document.createElement('div');
+    mgEl.className = 's-menu-item';
+    mgEl.innerHTML = '<span>👔 マネージャー</span><span style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;color:var(--text-faint)">' + (S.managerList || []).length + '名登録</span><span class="arrow">›</span></span>';
+    mgEl.onclick = () => { sStack.push('managerList'); renderSettings(); };
+    body.appendChild(mgEl);
+
     VEHICLE_LIST.forEach(vl => {
       const priority = S.driverPriority[vl.name] || [];
       const el = document.createElement('div');
@@ -1612,6 +1634,52 @@ function renderSettings() {
       el.onclick = () => { sStack.push({ v: 'dpType', typeName: vl.name }); renderSettings(); };
       body.appendChild(el);
     });
+
+  } else if (view === 'managerList') {
+    titleEl.textContent = '👔 マネージャー';
+    if (!S.managerList) S.managerList = [];
+    const note = document.createElement('div');
+    note.className = 's-note';
+    note.textContent = '自動配車時にチームトラックの運転席以外の席へ優先的に配車されます。長押し→ドラッグで順番を変更できます。';
+    body.appendChild(note);
+    S.managerList.forEach((pid, i) => {
+      const person = findPersonById(pid);
+      if (!person) return;
+      const row = document.createElement('div');
+      row.className = 's-list-item';
+      const numEl = document.createElement('span');
+      numEl.className = 'dp-num'; numEl.textContent = (i + 1) + '.';
+      row.appendChild(numEl);
+      const nm = document.createElement('span');
+      nm.className = 'item-name'; nm.textContent = person.name;
+      row.appendChild(nm);
+      const gName = S.groups.find(g => g.id === person.groupId);
+      const sub = document.createElement('span');
+      sub.className = 'item-sub'; sub.textContent = gName ? gName.name : '';
+      row.appendChild(sub);
+      const acts = document.createElement('div');
+      acts.className = 'item-actions';
+      const delBtn = document.createElement('button');
+      delBtn.className = 's-btn-delete'; delBtn.textContent = '外す';
+      delBtn.onclick = () => { S.managerList.splice(i, 1); saveS(); renderSettings(); };
+      acts.appendChild(delBtn);
+      row.appendChild(acts);
+      initRowReorder(row, i, { dragHandle: nm, array: S.managerList, save: saveS });
+      body.appendChild(row);
+    });
+    const addBtn = document.createElement('button');
+    addBtn.className = 's-btn-add'; addBtn.textContent = '＋ マネージャーを追加';
+    addBtn.onclick = async () => {
+      const allPeople = [];
+      S.groups.forEach(g => {
+        if (g.isPlayer) return;
+        g.people.forEach(p => { if (!S.managerList.includes(p.id)) allPeople.push({ id: p.id, name: p.name, groupName: g.name }); });
+      });
+      if (allPeople.length === 0) { toast('追加できる人がいません'); return; }
+      const selected = await pickPerson(allPeople, 'マネージャーを選択');
+      if (selected) { S.managerList.push(selected); saveS(); renderSettings(); }
+    };
+    body.appendChild(addBtn);
 
   } else if (view && view.v === 'dpType') {
     const typeName = view.typeName;
