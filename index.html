@@ -262,7 +262,7 @@ function $(id) { return document.getElementById(id); }
 /* ========== Default Data ========== */
 const VEHICLE_LIST = [
   { name: 'チームトラック', capacity: 2, fixed: true },
-  { name: 'チームバス', capacity: 22, fixed: true },
+  { name: 'チームバス', capacity: 25, fixed: true },
   { name: '軽トラ', capacity: 2, fixed: true },
   { name: '選手号' },
   { name: '父兄号' },
@@ -290,7 +290,7 @@ function defaultSession() {
     title: '', counts: { y3: '', y2: '', y1: '' }, activeTab: '', playerSeats: '',
     vehicles: [
       { id: uid(), typeName: 'チームトラック', capacity: 2, slots: Array(2).fill(null) },
-      { id: uid(), typeName: 'チームバス', capacity: 22, slots: Array(22).fill(null) }
+      { id: uid(), typeName: 'チームバス', capacity: 25, slots: Array(25).fill(null) }
     ]
   };
 }
@@ -1383,17 +1383,24 @@ function genText() {
     const isBus = baseName.indexOf('バス') !== -1;
     const icon = vehicleIcon(baseName);
     const people = [];
-    const gc = {};
+    const gradeNames = {};
     let driver = null;
 
     v.slots.forEach((s, i) => {
       if (!s) return;
-      if (pg) { const pp = pg.people.find(p => p.id === s.personId); if (pp && pp.grade) { gc[pp.grade] = (gc[pp.grade] || 0) + 1; return; } }
+      if (pg) {
+        const pp = pg.people.find(p => p.id === s.personId);
+        if (pp && pp.grade) {
+          if (!gradeNames[pp.grade]) gradeNames[pp.grade] = [];
+          gradeNames[pp.grade].push(s.name);
+          return;
+        }
+      }
       if (i === 0) driver = s.name;
       else people.push(s.name);
     });
 
-    const hasContent = driver || people.length || Object.keys(gc).length;
+    const hasContent = driver || people.length || Object.keys(gradeNames).length;
     if (!hasContent) return;
 
     lines.push(lbl);
@@ -1402,6 +1409,10 @@ function genText() {
       for (let i = 0; i < people.length; i += 2) {
         lines.push(people.slice(i, i + 2).join('　'));
       }
+      // 選手は3年→2年→1年の順で1名ずつ縦に並べる
+      [3, 2, 1].forEach(grade => {
+        if (gradeNames[grade]) gradeNames[grade].forEach(name => lines.push(name));
+      });
     } else {
       const all = [];
       if (driver) all.push(icon + driver);
@@ -1409,13 +1420,12 @@ function genText() {
       for (let i = 0; i < all.length; i += 2) {
         lines.push(all.slice(i, i + 2).join('　'));
       }
+      const gp = [];
+      if (gradeNames[3]) gp.push('3年選手' + gradeNames[3].length + '人');
+      if (gradeNames[2]) gp.push('2年選手' + gradeNames[2].length + '人');
+      if (gradeNames[1]) gp.push('1年選手' + gradeNames[1].length + '人');
+      if (gp.length) lines.push(gp.join('　'));
     }
-
-    const gp = [];
-    if (gc[3]) gp.push('3年選手' + gc[3] + '人');
-    if (gc[2]) gp.push('2年選手' + gc[2] + '人');
-    if (gc[1]) gp.push('1年選手' + gc[1] + '人');
-    if (gp.length) lines.push(gp.join('　'));
     lines.push('');
   });
 
