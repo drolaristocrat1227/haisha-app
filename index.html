@@ -1377,6 +1377,17 @@ function genText() {
   const lines = [title + 'の配車です。', ''];
   const pg = S.groups.find(g => g.isPlayer);
 
+  // 残席数＝バスの選手席数。3年→2年→1年の順で埋める
+  let rem = parseInt(SS.playerSeats) || 0;
+  const y3 = parseInt(SS.counts.y3) || 0;
+  const y2 = parseInt(SS.counts.y2) || 0;
+  const y1 = parseInt(SS.counts.y1) || 0;
+  const bb3 = Math.min(rem, y3); rem -= bb3;
+  const bb2 = Math.min(rem, y2); rem -= bb2;
+  const bb1 = Math.min(rem, y1);
+  const hasBusPlayers = bb3 > 0 || bb2 > 0 || bb1 > 0;
+  let busPlayersAdded = false;
+
   SS.vehicles.forEach(v => {
     const lbl = vehicleLabel(v);
     const baseName = v.typeName;
@@ -1400,7 +1411,8 @@ function genText() {
       else people.push(s.name);
     });
 
-    const hasContent = driver || people.length || Object.keys(gradeNames).length;
+    const addBusPlayers = isBus && hasBusPlayers && !busPlayersAdded;
+    const hasContent = driver || people.length || Object.keys(gradeNames).length || addBusPlayers;
     if (!hasContent) return;
 
     lines.push(lbl);
@@ -1409,10 +1421,12 @@ function genText() {
       for (let i = 0; i < people.length; i += 2) {
         lines.push(people.slice(i, i + 2).join('　'));
       }
-      // 選手は3年→2年→1年の順で1名ずつ縦に並べる
-      [3, 2, 1].forEach(grade => {
-        if (gradeNames[grade]) gradeNames[grade].forEach(name => lines.push(name));
-      });
+      if (addBusPlayers) {
+        if (bb3 > 0) lines.push('3年選手' + bb3 + '人');
+        if (bb2 > 0) lines.push('2年選手' + bb2 + '人');
+        if (bb1 > 0) lines.push('1年選手' + bb1 + '人');
+        busPlayersAdded = true;
+      }
     } else {
       const all = [];
       if (driver) all.push(icon + driver);
