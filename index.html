@@ -1896,24 +1896,29 @@ function runAutoAssign() {
   if (truckV) {
     const drv = getDriver('チームトラック');
     if (drv) { truckV.slots[0] = { personId: drv.id, name: drv.name, groupId: drv.groupId }; assigned.add(drv.id); }
-    // マネージャーを運転席以外の席に優先配車
-    (S.managerList || []).forEach(pid => {
-      if (!attSet.has(pid) || assigned.has(pid)) return;
-      const person = findPersonById(pid);
-      if (!person) return;
-      for (let si = 1; si < truckV.capacity; si++) {
-        if (!truckV.slots[si]) { truckV.slots[si] = { personId: person.id, name: person.name, groupId: person.groupId }; assigned.add(person.id); break; }
-      }
-    });
-    fillSlots(truckV, [...staffPool, ...otherPool]);
   }
 
   const keiV = SS.vehicles.find(v => v.typeName === '軽トラ');
   if (keiV) {
     const drv = getDriver('軽トラ');
     if (drv) { keiV.slots[0] = { personId: drv.id, name: drv.name, groupId: drv.groupId }; assigned.add(drv.id); }
-    fillSlots(keiV, [...staffPool, ...otherPool]);
   }
+
+  // マネージャーを運転席以外の席に優先配車（チームトラック①優先、無ければ軽トラ①）
+  const mgrTargetV = truckV || keiV;
+  if (mgrTargetV) {
+    (S.managerList || []).forEach(pid => {
+      if (!attSet.has(pid) || assigned.has(pid)) return;
+      const person = findPersonById(pid);
+      if (!person) return;
+      for (let si = 1; si < mgrTargetV.capacity; si++) {
+        if (!mgrTargetV.slots[si]) { mgrTargetV.slots[si] = { personId: person.id, name: person.name, groupId: person.groupId }; assigned.add(person.id); break; }
+      }
+    });
+  }
+
+  if (truckV) fillSlots(truckV, [...staffPool, ...otherPool]);
+  if (keiV) fillSlots(keiV, [...staffPool, ...otherPool]);
 
   ['道具車', 'フロント号', '審判支援号'].forEach(typeName => {
     const specialPids = new Set(SS.specialPersons ? (SS.specialPersons[typeName] || []) : []);
@@ -2359,7 +2364,7 @@ function renderSettings() {
     if (!S.managerList) S.managerList = [];
     const note = document.createElement('div');
     note.className = 's-note';
-    note.textContent = '自動配車時にチームトラックの運転席以外の席へ優先的に配車されます。長押し→ドラッグで順番を変更できます。';
+    note.textContent = '自動配車時に運転席以外の席へ優先的に配車されます（チームトラック①優先、チームトラックが無い場合は軽トラ①）。長押し→ドラッグで順番を変更できます。';
     body.appendChild(note);
     S.managerList.forEach((pid, i) => {
       const person = findPersonById(pid);
@@ -2461,7 +2466,19 @@ function renderSettings() {
         ]
       },
       {
-        h: '② 名前を車に配置する',
+        h: '② 自動配車を使う（おすすめの設定）',
+        p: [
+          'メイン画面上部の「⚡ 自動配車」を押すと参加者選択画面に移ります。出席する人にチェックを入れて「配車を組む」を押すと、選手号・父兄号などが自動的に組まれます。',
+          '運転してもらう可能性がある父兄には、あらかじめ設定画面の「グループ設定」→対象の名前の「編集」欄にある🚗ボタンから車の乗車定員を登録しておいてください。車を登録していない人は自動配車で運転手として選ばれません。',
+          '特定の人を優先的に運転手にしたい場合は、設定画面の「運転手優先順位」で車種ごとに順番を決めておくと、自動配車時にその順番から割り当てられます。設定していなくても、車を登録していれば自動的に運転手候補になります。',
+          'チームトラック・チームバス・軽トラ・道具車・フロント号・審判支援号を使う場合は、自動配車を組む前に画面上部のタブでON（選択済み）にしておいてください。道具車・フロント号・審判支援号は「乗る人」も先に選んでおくと、その人たちの中だけで自動的に組まれます。',
+          '設定画面の「マネージャー」に登録した人は、運転席以外の席へ優先的に配車されます（チームトラック①優先、チームトラックが無い場合は軽トラ①）。',
+          '自動配車のあとに赤色の「運転手が足りません」という車が出てきた場合は、乗せきれなかった人がまとめて表示されています。車を持つ父兄を増やすか、手動で配置し直してください。',
+          '「配車を組む」をもう一度押すと、すべての車の乗車内容がいったんリセットされ、最新の出欠状況で組み直されます。手動で調整した内容も上書きされるため、細かい手直しは自動配車を実行し終えた後にまとめて行うのがおすすめです。'
+        ]
+      },
+      {
+        h: '③ 名前を車に配置する',
         p: [
           '下部のタブを切り替えながら、名前カードを車の空き枠までドラッグして配置します。',
           'すでに名前が入っている枠にドラッグすると、その場で入れ替わります。',
@@ -2469,7 +2486,7 @@ function renderSettings() {
         ]
       },
       {
-        h: '③ 車の管理',
+        h: '④ 車の管理',
         p: [
           '「＋ 車を追加」から車種・席数を選んで追加できます。',
           '車の名前部分を長押ししてドラッグすると、車の並び順を変更できます。',
@@ -2477,7 +2494,7 @@ function renderSettings() {
         ]
       },
       {
-        h: '④ タブとグループ',
+        h: '⑤ タブとグループ',
         p: [
           '「ゲスト」タブは、その場で名前カードを追加できる特別なタブです。追加した名前はリセットすると消えます。',
           '「選手」タブでは、3・2・1年の人数と残席数を入力して「カード作成」を押すと、乗りきれない人数分の選手カードが自動的に作られます。',
@@ -2488,7 +2505,7 @@ function renderSettings() {
         ]
       },
       {
-        h: '⑤ 決定とコピー',
+        h: '⑥ 決定とコピー',
         p: [
           '「決定」ボタンを押すと、LINEのノートなどに貼り付けられる配車表のテキストが作成されます。',
           '内容は画面上で直接編集できます。',
@@ -2496,7 +2513,7 @@ function renderSettings() {
         ]
       },
       {
-        h: '⑥ リセット',
+        h: '⑦ リセット',
         p: [
           '「リセット」を押すと、車への配置・選手カード・ゲストカードがすべて消えます。グループや車の設定自体は消えません。',
           '操作のたびに自動保存されるため、アプリを閉じても直前の状態が保持されます。'
