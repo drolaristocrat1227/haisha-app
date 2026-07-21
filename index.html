@@ -59,6 +59,11 @@ button{cursor:pointer;border:none;background:none;outline:none}
 .vehicle-slot.drop-hover{border-color:var(--primary-dark);background:var(--primary-tint);border-style:solid;transform:scale(1.04)}
 .vehicle-slot .slot-label{font-size:8.5px;color:#b0822a;position:absolute;top:1px;left:3px;font-weight:700}
 .vehicle-slot.occupied .slot-label{color:rgba(255,255,255,.85)}
+.vehicle-block.shortage-block{background:var(--danger-tint);box-shadow:0 2px 10px rgba(214,83,109,.35)}
+.vehicle-block.shortage-block .vehicle-name{color:var(--danger)}
+.vehicle-block.shortage-block .vehicle-count{background:var(--danger);color:#fff}
+.vehicle-block.shortage-block .vehicle-slot{background:#fff;border-color:var(--danger)}
+.vehicle-block.shortage-block .vehicle-slot.occupied{background:var(--danger);border-color:var(--danger);color:#fff}
 .vehicle-delete{flex:0 0 30px;display:flex;align-items:center;justify-content:center;background:var(--surface-alt);border-left:1px solid var(--border);writing-mode:vertical-rl;font-size:11px;color:var(--danger);font-weight:700;letter-spacing:2px}
 .vehicle-delete:active{background:var(--danger-tint)}
 .btn-add-vehicle{width:100%;padding:11px;border:2px dashed var(--border-soft);border-radius:12px;color:var(--text-soft);font-size:13px;background:var(--surface-alt);font-weight:700;margin-top:2px}
@@ -99,9 +104,12 @@ button{cursor:pointer;border:none;background:none;outline:none}
 .player-controls .btn-gen:active{background:#d67d44}
 
 /* Section 5: Confirm */
-#sec-confirm{flex:0 0 10%;display:flex;align-items:center;justify-content:center;padding:0 20px;background:var(--bg)}
+#sec-confirm{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;padding:8px 20px 12px;background:var(--bg)}
+.vehicle-count.cap-clickable{cursor:pointer;text-decoration:underline dotted;text-underline-offset:2px}
 .btn-confirm{width:100%;max-width:360px;padding:13px;background:var(--primary);color:#fff;border-radius:14px;font-size:16px;font-weight:700;letter-spacing:2px;box-shadow:0 6px 16px rgba(43,184,154,.35)}
 .btn-confirm:active{background:var(--primary-dark)}
+.btn-confirm:disabled{background:#c8c8c8;box-shadow:none;color:#999;cursor:not-allowed}
+.vehicle-no-driver .vehicle-header{outline:2px solid #ff4444;border-radius:10px}
 
 /* Drag clone */
 #drag-clone{position:fixed;pointer-events:none;z-index:9999;padding:8px 14px;background:var(--primary);color:#fff;border-radius:18px;font-size:12px;font-weight:700;box-shadow:var(--shadow-float);display:none;white-space:nowrap;transform:translate(-50%,-50%)}
@@ -187,10 +195,27 @@ button{cursor:pointer;border:none;background:none;outline:none}
 .btn-back:active{background:var(--border)}
 
 /* Fixed vehicle toggle bar */
-#fixed-vehicle-bar{flex:0 0 auto;display:flex;gap:6px;padding:8px 10px;background:var(--surface);border-bottom:1px solid var(--border)}
-.fixed-toggle{flex:1;display:flex;align-items:center;justify-content:center;gap:3px;padding:8px 2px;border-radius:10px;font-size:10px;font-weight:700;border:2px solid var(--border-soft);background:var(--surface-alt);color:var(--text-faint);text-align:center;line-height:1.25}
-.fixed-toggle.on{background:var(--primary-tint);border-color:var(--primary);color:var(--primary-dark)}
-.fixed-toggle:active{opacity:.75}
+#fixed-vehicle-bar{flex:0 0 auto;display:flex;gap:5px;padding:8px 10px;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto;-webkit-overflow-scrolling:touch}
+.ftc{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;border:2px solid var(--border-soft);border-radius:10px;background:var(--surface-alt);overflow:hidden;min-width:56px;max-width:72px;cursor:pointer;position:relative}
+.ftc.on{border-color:var(--primary);background:var(--primary-tint)}
+.ftc-toggle{display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 4px 4px;width:100%;text-align:center}
+.ftc-icon{font-size:18px;line-height:1}
+.ftc-label{font-size:9px;font-weight:700;color:var(--text-faint);line-height:1.3;text-align:center}
+.ftc.on .ftc-label{color:var(--primary-dark)}
+.ftc-x{position:absolute;top:2px;right:2px;font-size:10px;line-height:1;padding:2px 3px;background:rgba(0,0,0,.08);border-radius:4px;color:var(--text-soft);z-index:1}
+.ftc-x:active{background:var(--danger-tint);color:var(--danger)}
+.ftc-controls{display:flex;flex-direction:column;align-items:center;gap:3px;padding:2px 4px 5px;width:100%;border-top:1px solid var(--border)}
+.ftc-sub-btn{font-size:9px;padding:2px 4px;border-radius:5px;background:var(--surface);border:1px solid var(--primary);color:var(--primary-dark);font-weight:600;width:calc(100% - 4px);text-align:center;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.ftc-add-more{border-style:dashed;opacity:.75;min-width:40px;max-width:40px}
+.ftc-add-more:active{opacity:1;border-color:var(--primary)}
+/* Driver warning modal */
+.drv-warn-modal{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:center;justify-content:center}
+.drv-warn-modal.show{display:flex}
+.drv-warn-box{background:var(--surface);border-radius:16px;padding:20px 18px;max-width:88%;width:320px;box-shadow:var(--shadow-float)}
+.drv-warn-title{font-size:14px;font-weight:700;color:var(--danger);margin-bottom:12px;text-align:center}
+.drv-warn-list{margin-bottom:16px;display:flex;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto}
+.drv-warn-item{background:#fff0f0;border:1.5px solid #f5a5a5;border-radius:8px;padding:8px 12px;font-size:12px;color:#c00;font-weight:600}
+.drv-warn-close{display:block;margin:0 auto;padding:10px 28px;background:var(--primary);color:#fff;border-radius:10px;font-size:14px;font-weight:700}
 
 /* Auto-assign bar */
 #sec-autoassign-bar{flex:0 0 auto;padding:6px 10px;background:var(--bg);display:flex;justify-content:flex-end;border-bottom:1px solid var(--border)}
@@ -227,6 +252,20 @@ button{cursor:pointer;border:none;background:none;outline:none}
 
 /* Driver priority rows */
 .dp-num{font-size:11px;font-weight:700;color:var(--text-faint);width:20px;text-align:right;flex-shrink:0}
+
+/* Dummy seat card */
+.dummy-card{background:var(--surface-alt)!important;border-color:var(--border-soft)!important;color:var(--text-faint)!important;font-size:11px!important}
+.vehicle-slot.dummy-slot{background:var(--surface-alt)!important;border-color:var(--border)!important;color:var(--text-faint)!important;border-style:solid!important;font-size:13px}
+
+/* Truck extra seats control */
+.truck-seats-ctrl{display:flex;align-items:center;gap:6px;margin-top:7px;padding:5px 8px;background:var(--surface-alt);border-radius:8px}
+.truck-seats-lbl{font-size:11px;font-weight:700;color:var(--text-soft);white-space:nowrap}
+.truck-seats-inp{width:38px;text-align:center;border:1px solid var(--border);border-radius:6px;padding:3px 2px;font-size:12px;background:#fff}
+
+/* Car badge in person list */
+.car-badge{font-size:10px;font-weight:700;color:var(--primary-dark);background:var(--primary-tint);border-radius:8px;padding:1px 6px}
+.s-btn-car{background:var(--surface-alt);color:var(--text-soft);border:1px solid var(--border);font-size:11px}
+.s-btn-car.has-car{background:var(--primary-tint);color:var(--primary-dark);border-color:var(--primary)}
 </style>
 </head>
 <body>
@@ -241,11 +280,7 @@ button{cursor:pointer;border:none;background:none;outline:none}
   <div id="sec-title-bar">
     <input type="text" class="title-input" id="titleInput" placeholder="タイトルを入力">
   </div>
-  <div id="fixed-vehicle-bar">
-    <button class="fixed-toggle" id="togTruck">🚛<br>チームトラック</button>
-    <button class="fixed-toggle" id="togBus">🚌<br>チームバス</button>
-    <button class="fixed-toggle" id="togKei">🚐<br>軽トラ</button>
-  </div>
+  <div id="fixed-vehicle-bar"></div>
   <div id="sec-autoassign-bar">
     <button class="btn-auto-assign" id="btnAutoAssign">⚡ 自動配車</button>
   </div>
@@ -312,6 +347,14 @@ button{cursor:pointer;border:none;background:none;outline:none}
 </div>
 <div id="toast"></div>
 
+<div id="driver-warn-modal" class="drv-warn-modal">
+  <div class="drv-warn-box">
+    <div class="drv-warn-title">⚠ 運転手が未配置の車があります</div>
+    <div id="driver-warn-list" class="drv-warn-list"></div>
+    <button id="btnWarnClose" class="drv-warn-close">閉じる</button>
+  </div>
+</div>
+
 <script>
 'use strict';
 
@@ -345,7 +388,8 @@ function defaultSettings() {
     ],
     tabOrder: ['g_player', 'g_staff', 'g_p3', 'g_p2', 'g_p1', 'g_guest'],
     driverPriority: {},
-    managerList: []
+    managerList: [],
+    vehicleOrder: ['チームトラック', '軽トラ', 'チームバス', '選手号', '道具車', '父兄号', 'フロント号', '審判支援号']
   };
 }
 
@@ -377,6 +421,9 @@ function load() {
   if (!S.driverPriority) S.driverPriority = {};
   if (!S.managerList) S.managerList = [];
   if (!SS.attending) SS.attending = [];
+  if (!SS.fixedCaps) SS.fixedCaps = {};
+  if (!SS.specialPersons) SS.specialPersons = {};
+  if (!S.vehicleOrder) S.vehicleOrder = ['チームトラック', '軽トラ', 'チームバス', '選手号', '道具車', '父兄号', 'フロント号', '審判支援号'];
 }
 
 function saveS() { localStorage.setItem('haisha_settings', JSON.stringify(S)); }
@@ -407,12 +454,278 @@ function getGroupParentGrade(g) {
   return null;
 }
 
+const FTC_SHORT = { 'チームトラック':'トラック', 'チームバス':'バス', '軽トラ':'軽トラ', '道具車':'道具車', 'フロント号':'フロント', '審判支援号':'審判' };
+const CN_CIRC = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩'];
+
 function renderFixedBar() {
-  const FIXED_TYPES = { togTruck: 'チームトラック', togBus: 'チームバス', togKei: '軽トラ' };
-  for (const [id, typeName] of Object.entries(FIXED_TYPES)) {
-    const el = $(id);
-    if (el) el.classList.toggle('on', SS.vehicles.some(v => v.typeName === typeName));
+  const bar = $('fixed-vehicle-bar');
+  bar.innerHTML = '';
+
+  const FIXED_TYPES = new Set(FIXED_VEHICLE_ORDER);
+  const orderedTypes = (S.vehicleOrder || FIXED_VEHICLE_ORDER).filter(t => FIXED_TYPES.has(t));
+
+  orderedTypes.forEach(typeName => {
+    const spec = FIXED_VEHICLE_SPECS[typeName];
+    if (!spec) return;
+    const vehicles = SS.vehicles.filter(v => v.typeName === typeName);
+    const short = FTC_SHORT[typeName] || typeName;
+
+    if (vehicles.length === 0) {
+      // OFF card
+      const card = document.createElement('div');
+      card.className = 'ftc';
+      card.innerHTML = '<div class="ftc-toggle"><span class="ftc-icon">' + spec.icon + '</span><span class="ftc-label">' + esc(short) + '</span></div>';
+      card.onclick = () => handleFixedToggle(typeName);
+      bar.appendChild(card);
+    } else {
+      // One card per vehicle
+      vehicles.forEach((v, idx) => {
+        const num = vehicles.length > 1 ? (CN_CIRC[idx] || String(idx + 1)) : '';
+        const card = document.createElement('div');
+        card.className = 'ftc on';
+
+        // × remove button
+        const xBtn = document.createElement('button');
+        xBtn.className = 'ftc-x';
+        xBtn.textContent = '×';
+        xBtn.onclick = e => { e.stopPropagation(); removeVehicleById(v.id, typeName); };
+        card.appendChild(xBtn);
+
+        // Icon + name area
+        const tog = document.createElement('div');
+        tog.className = 'ftc-toggle';
+        tog.innerHTML = '<span class="ftc-icon">' + spec.icon + '</span><span class="ftc-label">' + esc(short) + (num ? '<br>' + num : '') + '</span>';
+        card.appendChild(tog);
+
+        // Controls (cap + people)
+        if (!spec.capFixed || spec.needsPeople) {
+          const ctrl = document.createElement('div');
+          ctrl.className = 'ftc-controls';
+          if (!spec.capFixed) {
+            const capBtn = document.createElement('button');
+            capBtn.className = 'ftc-sub-btn';
+            capBtn.textContent = v.capacity + '名';
+            capBtn.onclick = e => { e.stopPropagation(); changeVehicleCap(v.id); };
+            ctrl.appendChild(capBtn);
+          }
+          if (spec.needsPeople) {
+            const sp = SS.specialPersons && SS.specialPersons[typeName];
+            const pplBtn = document.createElement('button');
+            pplBtn.className = 'ftc-sub-btn';
+            pplBtn.textContent = sp && sp.length > 0 ? '乗る人' + sp.length + '名' : '乗る人▼';
+            pplBtn.onclick = e => { e.stopPropagation(); openSpecialPersonPicker(typeName); };
+            ctrl.appendChild(pplBtn);
+          }
+          card.appendChild(ctrl);
+        }
+
+        bar.appendChild(card);
+      });
+
+      // Add more card
+      const addCard = document.createElement('div');
+      addCard.className = 'ftc ftc-add-more';
+      addCard.innerHTML = '<div class="ftc-toggle"><span class="ftc-icon">＋</span><span class="ftc-label">' + esc(short) + '</span></div>';
+      addCard.onclick = () => addOneFixed(typeName);
+      bar.appendChild(addCard);
+    }
+  });
+}
+
+function changeVehicleCap(vehicleId) {
+  const v = SS.vehicles.find(vv => vv.id === vehicleId);
+  if (!v) return;
+  const spec = FIXED_VEHICLE_SPECS[v.typeName];
+  if (!spec || spec.capFixed) return;
+  return new Promise(res => {
+    const ov = $('pickerOverlay');
+    const sh = $('pickerSheet');
+    sh.innerHTML = '<div class="picker-title">定員を変更（' + esc(vehicleLabel(v)) + '）</div>';
+    for (let n = spec.capMin; n <= spec.capMax; n++) {
+      const d = document.createElement('div');
+      d.className = 'picker-item';
+      d.innerHTML = '<span>' + n + '名</span>' + (n === v.capacity ? '<span class="cap">現在</span>' : '');
+      d.onclick = () => {
+        ov.classList.remove('active');
+        const old = v.slots.slice();
+        v.capacity = n;
+        v.slots = Array(n).fill(null);
+        old.forEach((s, i) => { if (i < n) v.slots[i] = s; });
+        saveSS(); renderAll(); res();
+      };
+      sh.appendChild(d);
+    }
+    const cb = document.createElement('button');
+    cb.className = 'picker-cancel'; cb.textContent = 'キャンセル';
+    cb.onclick = () => { ov.classList.remove('active'); res(); };
+    sh.appendChild(cb);
+    ov.classList.add('active');
+  });
+}
+
+async function removeVehicleById(vehicleId, typeName) {
+  const v = SS.vehicles.find(vv => vv.id === vehicleId);
+  if (!v) return;
+  if (v.slots.some(s => s !== null)) {
+    await dialog('人が配置されているため取り外せません。\n先に人を外してください。');
+    return;
   }
+  SS.vehicles = SS.vehicles.filter(vv => vv.id !== vehicleId);
+  if (!SS.vehicles.some(vv => vv.typeName === typeName) && SS.specialPersons) {
+    delete SS.specialPersons[typeName];
+  }
+  saveSS(); renderAll();
+}
+
+async function handleFixedToggle(typeName) {
+  const spec = FIXED_VEHICLE_SPECS[typeName];
+  const vehicles = SS.vehicles.filter(v => v.typeName === typeName);
+
+  if (vehicles.length > 0) {
+    // Turn OFF — check if any have people assigned
+    const hasOccupied = vehicles.some(v => v.slots.some(s => s !== null));
+    if (hasOccupied) {
+      await dialog('人が配置されているため取り外せません。\n先に人を外してください。');
+      return;
+    }
+    SS.vehicles = SS.vehicles.filter(v => v.typeName !== typeName);
+    saveSS(); renderAll();
+  } else {
+    // Turn ON — add one vehicle
+    const cap = (SS.fixedCaps && SS.fixedCaps[typeName]) || spec.cap;
+    SS.vehicles.unshift({ id: uid(), typeName, capacity: cap, slots: Array(cap).fill(null) });
+    saveSS(); renderAll();
+    // If needsPeople, open person picker after render
+    if (spec.needsPeople) {
+      openSpecialPersonPicker(typeName);
+    }
+  }
+}
+
+function addOneFixed(typeName) {
+  const spec = FIXED_VEHICLE_SPECS[typeName];
+  const cap = (SS.fixedCaps && SS.fixedCaps[typeName]) || spec.cap;
+  // Find last index of this type and insert after it
+  let lastIdx = -1;
+  SS.vehicles.forEach((v, i) => { if (v.typeName === typeName) lastIdx = i; });
+  if (lastIdx < 0) return;
+  SS.vehicles.splice(lastIdx + 1, 0, { id: uid(), typeName, capacity: cap, slots: Array(cap).fill(null) });
+  saveSS(); renderAll();
+}
+
+async function removeOneFixed(typeName) {
+  const vehicles = SS.vehicles.filter(v => v.typeName === typeName);
+  if (vehicles.length <= 1) {
+    // Turn off via toggle (handles occupied check)
+    await handleFixedToggle(typeName);
+    return;
+  }
+  // Remove the last vehicle of this type
+  const lastV = vehicles[vehicles.length - 1];
+  if (lastV.slots.some(s => s !== null)) {
+    await dialog('人が配置されているため取り外せません。\n先に人を外してください。');
+    return;
+  }
+  const idx = SS.vehicles.indexOf(lastV);
+  SS.vehicles.splice(idx, 1);
+  saveSS(); renderAll();
+}
+
+function changeFixedCap(typeName) {
+  const spec = FIXED_VEHICLE_SPECS[typeName];
+  if (spec.capFixed) return;
+  const currentCap = (SS.fixedCaps && SS.fixedCaps[typeName]) || spec.cap;
+
+  return new Promise(res => {
+    const ov = $('pickerOverlay');
+    const sh = $('pickerSheet');
+    sh.innerHTML = '<div class="picker-title">定員を変更（' + esc(typeName) + '）</div>';
+
+    for (let n = spec.capMin; n <= spec.capMax; n++) {
+      const d = document.createElement('div');
+      d.className = 'picker-item';
+      d.innerHTML = '<span>' + n + '名</span>' + (n === currentCap ? '<span class="cap">現在</span>' : '');
+      d.onclick = () => {
+        ov.classList.remove('active');
+        if (!SS.fixedCaps) SS.fixedCaps = {};
+        SS.fixedCaps[typeName] = n;
+        // Update capacity and slots for all existing vehicles of this type
+        SS.vehicles.forEach(v => {
+          if (v.typeName !== typeName) return;
+          const oldSlots = v.slots.slice();
+          v.capacity = n;
+          v.slots = Array(n).fill(null);
+          oldSlots.forEach((s, i) => { if (i < n) v.slots[i] = s; });
+        });
+        saveSS(); renderAll(); res();
+      };
+      sh.appendChild(d);
+    }
+
+    const cb = document.createElement('button');
+    cb.className = 'picker-cancel'; cb.textContent = 'キャンセル';
+    cb.onclick = () => { ov.classList.remove('active'); res(); };
+    sh.appendChild(cb);
+    ov.classList.add('active');
+  });
+}
+
+function openSpecialPersonPicker(typeName) {
+  return new Promise(res => {
+    const ov = $('pickerOverlay');
+    const sh = $('pickerSheet');
+
+    // Collect all non-player people
+    const allPeople = [];
+    S.groups.forEach(g => {
+      if (g.isPlayer) return;
+      g.people.forEach(p => {
+        allPeople.push({ id: p.id, name: p.name, groupName: g.name });
+      });
+    });
+
+    if (!SS.specialPersons) SS.specialPersons = {};
+    const selected = new Set(SS.specialPersons[typeName] || []);
+
+    function renderSheet() {
+      sh.innerHTML = '<div class="picker-title">' + esc(typeName) + ' 乗る人を選択</div>';
+
+      allPeople.forEach(p => {
+        const isSel = selected.has(p.id);
+        const d = document.createElement('div');
+        d.className = 'picker-item';
+        if (isSel) d.style.background = 'var(--primary-tint)';
+        d.innerHTML = '<span>' + (isSel ? '✓ ' : '') + esc(p.name) + '</span><span class="cap">' + esc(p.groupName) + '</span>';
+        d.onclick = () => {
+          if (isSel) selected.delete(p.id);
+          else selected.add(p.id);
+          renderSheet();
+        };
+        sh.appendChild(d);
+      });
+
+      if (allPeople.length === 0) {
+        const empty = document.createElement('p');
+        empty.style.cssText = 'text-align:center;color:var(--text-faint);padding:16px;font-size:13px';
+        empty.textContent = '対象者がいません';
+        sh.appendChild(empty);
+      }
+
+      const confirmBtn = document.createElement('button');
+      confirmBtn.className = 'picker-cancel';
+      confirmBtn.style.color = 'var(--primary-dark)';
+      confirmBtn.textContent = '決定（' + selected.size + '名選択中）';
+      confirmBtn.onclick = () => {
+        ov.classList.remove('active');
+        SS.specialPersons[typeName] = Array.from(selected);
+        saveSS(); renderAll(); res();
+      };
+      sh.appendChild(confirmBtn);
+    }
+
+    renderSheet();
+    ov.classList.add('active');
+  });
 }
 
 async function toggleFixedVehicle(typeName, capacity) {
@@ -583,6 +896,15 @@ function renderAll() {
 }
 
 function renderVehicles() {
+  // 設定の並び順でソート
+  if (S.vehicleOrder && S.vehicleOrder.length > 0) {
+    SS.vehicles.sort((a, b) => {
+      const ai = S.vehicleOrder.indexOf(a.typeName);
+      const bi = S.vehicleOrder.indexOf(b.typeName);
+      return (ai >= 0 ? ai : 999) - (bi >= 0 ? bi : 999);
+    });
+  }
+
   const c = $('sec-vehicles');
   c.innerHTML = '';
 
@@ -594,8 +916,12 @@ function renderVehicles() {
   }
 
   SS.vehicles.forEach((v, vi) => {
+    const isShortage = v.typeName === DRIVER_SHORTAGE_TYPE;
     const block = document.createElement('div');
     block.className = 'vehicle-block';
+    if (isShortage) block.classList.add('shortage-block');
+    const hasDriver = v.slots[0] && v.slots[0].personId !== DUMMY_PID;
+    if (!hasDriver && !isShortage) block.classList.add('vehicle-no-driver');
     const main = document.createElement('div');
     main.className = 'vehicle-main';
 
@@ -604,11 +930,23 @@ function renderVehicles() {
     hdr.style.touchAction = 'none';
     hdr.style.userSelect = 'none';
     const occ = v.slots.filter(s => s).length;
-    const remain = v.capacity - occ;
-    const isFixed = ['チームトラック', 'チームバス', '軽トラ'].includes(v.typeName);
+    const drvSlot = v.slots[0];
+    const drvPerson = (!isShortage && drvSlot && drvSlot.personId !== DUMMY_PID) ? findPersonById(drvSlot.personId) : null;
+    const displayCap = (drvPerson && drvPerson.car) ? drvPerson.car.capacity : v.capacity;
+    const remain = Math.max(0, displayCap - occ);
+    const isFixed = FIXED_VEHICLE_ORDER.includes(v.typeName);
+    // 非固定車両はドライバーの車設定人数をスロット数に使用
+    const effectiveCap = isFixed ? v.capacity : displayCap;
+    const specForV = FIXED_VEHICLE_SPECS[v.typeName];
+    const canChangeCap = specForV && !specForV.capFixed;
+    const countCls = 'vehicle-count' + (canChangeCap ? ' cap-clickable' : '');
     hdr.innerHTML = '<div class="vehicle-name-wrap"><span class="vehicle-name">' + vehicleIcon(v.typeName) + ' ' + esc(vehicleLabel(v)) + '</span>' +
-      (isFixed ? '' : '<button class="vehicle-cat-badge">' + esc(v.typeName) + ' ▼</button>') +
-      '</div><span class="vehicle-count">' + v.capacity + '人乗り ／ 残' + remain + '席</span>';
+      (isFixed || isShortage ? '' : '<button class="vehicle-cat-badge">' + esc(v.typeName) + ' ▼</button>') +
+      '</div><span class="' + countCls + '">' + displayCap + '人乗り ／ 残' + remain + '席</span>';
+    if (canChangeCap) {
+      const cntEl = hdr.querySelector('.vehicle-count');
+      if (cntEl) cntEl.addEventListener('pointerup', e => { e.stopPropagation(); changeVehicleCap(v.id); });
+    }
     const badge = hdr.querySelector('.vehicle-cat-badge');
     if (badge) badge.addEventListener('pointerup', e => { e.stopPropagation(); showCategoryPicker(v); });
     initVehicleReorder(hdr, block, vi);
@@ -616,18 +954,19 @@ function renderVehicles() {
 
     const grid = document.createElement('div');
     grid.className = 'vehicle-slots';
-    for (let si = 0; si < v.capacity; si++) {
+    for (let si = 0; si < effectiveCap; si++) {
       const slot = document.createElement('div');
-      slot.className = 'vehicle-slot' + (si === 0 ? ' driver' : '');
+      slot.className = 'vehicle-slot' + (si === 0 && !isShortage ? ' driver' : '');
       slot.dataset.vi = vi;
       slot.dataset.si = si;
 
       const p = v.slots[si];
-      if (si === 0) slot.innerHTML = '<span class="slot-label">運転</span>' + (p ? esc(p.name) : '');
+      if (si === 0 && !isShortage) slot.innerHTML = '<span class="slot-label">運転</span>' + (p ? esc(p.name) : '');
       else if (p) slot.textContent = p.name;
 
       if (p) {
         slot.classList.add('occupied');
+        if (p.isDummy) slot.classList.add('dummy-slot');
         initSlotDrag(slot, vi, si, p);
       }
       grid.appendChild(slot);
@@ -728,6 +1067,17 @@ function renderCards() {
     if (!assigned(p.id)) initCardDrag(card);
     grid.appendChild(card);
   });
+
+  if (isStaffGroup(g)) {
+    const dummy = document.createElement('div');
+    dummy.className = 'person-card dummy-card';
+    dummy.textContent = '一席 ×';
+    dummy.dataset.pid = DUMMY_PID;
+    dummy.dataset.gid = g.id;
+    dummy.dataset.nm = '×';
+    initCardDrag(dummy);
+    grid.appendChild(dummy);
+  }
 
   if (!g.isPlayer) {
     const btn = document.createElement('button');
@@ -1201,6 +1551,15 @@ function onPtrMove(e) {
   D.ly = e.clientY;
 }
 
+function driverCapOk(vehicleIdx, personId) {
+  const veh = SS.vehicles[vehicleIdx];
+  if (['チームトラック', 'チームバス', '軽トラ'].includes(veh.typeName)) return true;
+  const p = findPersonById(personId);
+  if (!p || !p.car) return true;
+  const passengers = veh.slots.slice(1).filter(s => s && !s.isDummy).length;
+  return passengers <= p.car.capacity - 1;
+}
+
 function onPtrEnd(e) {
   if (e.pointerId !== D.pointerId) return;
   if (D.timer) { clearTimeout(D.timer); D.timer = null; }
@@ -1214,8 +1573,14 @@ function onPtrEnd(e) {
 
   const t = D.targetSlot;
   if (D.src === 'card' && t) {
-    SS.vehicles[t.vi].slots[t.si] = { personId: D.pid, groupId: D.gid, name: D.nm };
-    saveSS(); renderAll();
+    if (t.si === 0 && D.pid !== DUMMY_PID && !driverCapOk(t.vi, D.pid)) {
+      toast('乗車人数がオーバーしています。先に人数を調整してください');
+    } else {
+      SS.vehicles[t.vi].slots[t.si] = D.pid === DUMMY_PID
+        ? { personId: DUMMY_PID, name: '×', isDummy: true }
+        : { personId: D.pid, groupId: D.gid, name: D.nm };
+      saveSS(); renderAll();
+    }
   } else if (D.src === 'card' && D.targetCard) {
     const g = group(SS.activeTab);
     if (g) {
@@ -1232,9 +1597,13 @@ function onPtrEnd(e) {
   } else if (D.src === 'slot' && t) {
     const src = SS.vehicles[D.vi].slots[D.si];
     const dst = SS.vehicles[t.vi].slots[t.si];
-    SS.vehicles[t.vi].slots[t.si] = src;
-    SS.vehicles[D.vi].slots[D.si] = dst;
-    saveSS(); renderAll();
+    if (t.si === 0 && src && src.personId !== DUMMY_PID && !driverCapOk(t.vi, src.personId)) {
+      toast('乗車人数がオーバーしています。先に人数を調整してください');
+    } else {
+      SS.vehicles[t.vi].slots[t.si] = src;
+      SS.vehicles[D.vi].slots[D.si] = dst;
+      saveSS(); renderAll();
+    }
   } else if (D.src === 'slot' && D.targetReturn) {
     SS.vehicles[D.vi].slots[D.si] = null;
     saveSS(); renderAll();
@@ -1247,6 +1616,44 @@ function onPtrEnd(e) {
 
 /* ========== Category Picker ========== */
 const CHANGEABLE_TYPES = ['選手号', '父兄号', '道具車', 'フロント号', '審判支援号'];
+const FIXED_VEHICLE_SPECS = {
+  'チームトラック': { icon: '🚛', cap: 2,  capFixed: false, capMin: 1,  capMax: 2  },
+  'チームバス':     { icon: '🚌', cap: 25, capFixed: false, capMin: 5,  capMax: 60 },
+  '軽トラ':         { icon: '🚐', cap: 2,  capFixed: false, capMin: 1,  capMax: 2  },
+  '道具車':         { icon: '📦', cap: 2,  capFixed: false, capMin: 1,  capMax: 8,  needsPeople: true },
+  'フロント号':     { icon: '🏢', cap: 8,  capFixed: true,  capMin: 8,  capMax: 8,  needsPeople: true },
+  '審判支援号':     { icon: '🎯', cap: 8,  capFixed: true,  capMin: 8,  capMax: 8,  needsPeople: true },
+};
+const FIXED_VEHICLE_ORDER = ['チームトラック', 'チームバス', '軽トラ', '道具車', 'フロント号', '審判支援号'];
+const DUMMY_PID = '__dummy__';
+const DUMMY_SEAT_IDS = ['__dummy__0', '__dummy__1', '__dummy__2', '__dummy__3', '__dummy__4'];
+// 運転手不足で乗せきれなかった人を集める警告用の特殊車両（自動生成のみ・手動で追加/変更不可）
+const DRIVER_SHORTAGE_TYPE = '運転手が足りません';
+
+function setPersonCar(p) {
+  return new Promise(res => {
+    const ov = $('pickerOverlay');
+    const sh = $('pickerSheet');
+    sh.innerHTML = '<div class="picker-title">🚗 何人乗り？</div>';
+    const noCar = document.createElement('div');
+    noCar.className = 'picker-item';
+    noCar.innerHTML = '<span>🚫 車なし</span>' + (!p.car ? '<span class="cap">現在</span>' : '');
+    noCar.onclick = () => { ov.classList.remove('active'); p.car = null; saveS(); renderSettings(); res(); };
+    sh.appendChild(noCar);
+    for (let n = 2; n <= 8; n++) {
+      const d = document.createElement('div');
+      d.className = 'picker-item';
+      d.innerHTML = '<span>' + n + '人乗り</span>' + (p.car && p.car.capacity === n ? '<span class="cap">現在</span>' : '');
+      d.onclick = () => { ov.classList.remove('active'); p.car = { capacity: n }; saveS(); renderSettings(); res(); };
+      sh.appendChild(d);
+    }
+    const cb = document.createElement('button');
+    cb.className = 'picker-cancel'; cb.textContent = 'キャンセル';
+    cb.onclick = () => { ov.classList.remove('active'); res(); };
+    sh.appendChild(cb);
+    ov.classList.add('active');
+  });
+}
 
 function showCategoryPicker(v) {
   return new Promise(res => {
@@ -1389,6 +1796,30 @@ function renderAttList() {
     };
     list.appendChild(item);
   });
+
+  if (isStaffGroup(g)) {
+    const sep = document.createElement('div');
+    sep.style.cssText = 'text-align:center;font-size:11px;color:var(--text-faint);padding:4px 0;margin-top:6px;border-top:1px solid var(--border)';
+    sep.textContent = 'ダミー席 (一席 ×)';
+    list.appendChild(sep);
+    DUMMY_SEAT_IDS.forEach(did => {
+      const on = attSet.has(did);
+      const item = document.createElement('div');
+      item.className = 'att-item' + (on ? ' att-on' : '');
+      const chk = document.createElement('div');
+      chk.className = 'att-check' + (on ? ' on' : '');
+      chk.textContent = on ? '✓' : '';
+      const nm = document.createElement('span');
+      nm.className = 'att-name'; nm.textContent = '一席 ×';
+      item.appendChild(chk); item.appendChild(nm);
+      item.onclick = () => {
+        if (on) { const idx = SS.attending.indexOf(did); if (idx >= 0) SS.attending.splice(idx, 1); }
+        else SS.attending.push(did);
+        saveSS(); renderAttTabs(); renderAttList();
+      };
+      list.appendChild(item);
+    });
+  }
 }
 
 /* ========== Auto-Assign ========== */
@@ -1410,14 +1841,25 @@ function runAutoAssign() {
     });
   });
 
-  const assigned = new Set();
+  DUMMY_SEAT_IDS.forEach(did => {
+    if (attSet.has(did)) staffPool.push({ id: did, name: '×', isDummy: true });
+  });
 
-  function getDriver(typeName) {
+  const assigned = new Set();
+  const shortageList = []; // 運転手不足で乗せきれなかった人（選手号のはみ出し選手・父兄号に乗れない父兄）
+
+  // 父兄号の同乗者を選ぶ際、車を持つ父兄を温存する（他の車の運転手になれるチャンスを潰さない）
+  function carLessFirst(list) {
+    const hasCar = p => !!(findPersonById(p.id) && findPersonById(p.id).car);
+    return [...list.filter(p => !hasCar(p)), ...list.filter(p => hasCar(p))];
+  }
+
+  function getDriver(typeName, requireCar) {
     const priority = S.driverPriority[typeName] || [];
     for (const pid of priority) {
       if (attSet.has(pid) && !assigned.has(pid)) {
         const person = findPersonById(pid);
-        if (person) return person;
+        if (person && (!requireCar || person.car)) return person;
       }
     }
     return null;
@@ -1430,11 +1872,15 @@ function runAutoAssign() {
       if (vehicle.slots[si] !== null) continue;
       const person = pool.find(p => !assigned.has(p.id));
       if (!person) break;
-      vehicle.slots[si] = { personId: person.id, name: person.name, groupId: person.groupId };
+      vehicle.slots[si] = person.isDummy
+        ? { personId: DUMMY_PID, name: '×', isDummy: true }
+        : { personId: person.id, name: person.name, groupId: person.groupId };
       assigned.add(person.id); count++;
     }
   }
 
+  // 前回自動生成した車両を削除してスロットをリセット（父兄号は選手号配置後に再生成）
+  SS.vehicles = SS.vehicles.filter(v => !v.autoCreated);
   SS.vehicles.forEach(v => { v.slots = Array(v.capacity).fill(null); });
 
   const allParents = [...parentPool[3], ...parentPool[2], ...parentPool[1]];
@@ -1470,58 +1916,293 @@ function runAutoAssign() {
   }
 
   ['道具車', 'フロント号', '審判支援号'].forEach(typeName => {
+    const specialPids = new Set(SS.specialPersons ? (SS.specialPersons[typeName] || []) : []);
     SS.vehicles.filter(v => v.typeName === typeName).forEach(v => {
-      const drv = getDriver(typeName);
-      if (drv) { v.slots[0] = { personId: drv.id, name: drv.name, groupId: drv.groupId }; assigned.add(drv.id); }
-      const lim = v.capacity >= 7 ? 6 : v.capacity;
-      fillSlots(v, [...staffPool, ...otherPool], lim);
+      if (specialPids.size > 0) {
+        // 選択された人物のみからpool構築
+        const pool = [];
+        S.groups.forEach(g => {
+          g.people.forEach(p => {
+            if (specialPids.has(p.id) && attSet.has(p.id) && !assigned.has(p.id)) {
+              pool.push({ id: p.id, name: p.name, groupId: g.id, isFah: !!getGroupParentGrade(g) });
+            }
+          });
+        });
+        let drv = getDriver(typeName);
+        // フロント号は父兄を優先してドライバーに
+        if (!drv && typeName === 'フロント号') drv = pool.find(p => p.isFah) || null;
+        if (!drv && pool.length > 0) drv = pool[0];
+        if (drv) { v.slots[0] = { personId: drv.id, name: drv.name, groupId: drv.groupId }; assigned.add(drv.id); }
+        fillSlots(v, pool, v.capacity);
+      } else {
+        const drv = getDriver(typeName);
+        if (drv) { v.slots[0] = { personId: drv.id, name: drv.name, groupId: drv.groupId }; assigned.add(drv.id); }
+        fillSlots(v, [...staffPool, ...otherPool], v.capacity);
+      }
     });
   });
 
-  SS.vehicles.filter(v => v.typeName === '父兄号').forEach(v => {
-    const lim = v.capacity >= 7 ? 6 : v.capacity;
-    // 現時点で未配車の人数が最も多い学年を優先して乗せる
+  // === バス選手席の計算 ===
+  const y3c = parseInt(SS.counts.y3)||0, y2c = parseInt(SS.counts.y2)||0, y1c = parseInt(SS.counts.y1)||0;
+  const totalPlayers = y3c + y2c + y1c;
+  let busPS = parseInt(SS.playerSeats) || 0;
+  if (busV) {
+    const busOcc = busV.slots.filter(s => s && !s.isDummy).length;
+    busPS = Math.max(0, busV.capacity - busOcc);
+    SS.playerSeats = busPS;
+  }
+
+  // === 選手号（自動生成）: はみ出し選手 + 運転手 + 同乗父兄 ===
+  if (totalPlayers > 0) {
+    let remBus = busPS;
+    const bb3 = Math.min(remBus, y3c); remBus -= bb3;
+    const bb2 = Math.min(remBus, y2c); remBus -= bb2;
+    const bb1 = Math.min(remBus, y1c);
+    const ov3 = y3c - bb3, ov2 = y2c - bb2, ov1 = y1c - bb1;
+    // バスの後、なければトラックの後に挿入
+    const busIdx = SS.vehicles.findIndex(v => v.typeName === 'チームバス');
+    const trkIdx = SS.vehicles.findIndex(v => v.typeName === 'チームトラック');
+    const insertAt = busIdx >= 0 ? busIdx + 1 : (trkIdx >= 0 ? trkIdx + 1 : SS.vehicles.length);
+    let createdCount = 0;
+    const gradeCounters = { '3年': 0, '2年': 0, '1年': 0 };
+
+    [[ov3, '3年', 3], [ov2, '2年', 2], [ov1, '1年', 1]].forEach(([ovCount, gradeName, gradeKey]) => {
+      if (ovCount === 0) return;
+
+      // 運転手選定: 同学年の車持ち父兄 → 他学年の車持ち父兄 → その他父兄（優先順位設定を尊重）
+      function findSensuDriver(excludeSet) {
+        let drv = null;
+        for (const pid of (S.driverPriority['選手号'] || [])) {
+          if (!attSet.has(pid) || assigned.has(pid) || excludeSet.has(pid)) continue;
+          const person = findPersonById(pid);
+          if (person && person.car && parentPool[gradeKey].some(p => p.id === pid)) { drv = person; break; }
+        }
+        if (!drv) drv = parentPool[gradeKey].find(p => !assigned.has(p.id) && !excludeSet.has(p.id) && findPersonById(p.id) && findPersonById(p.id).car) || null;
+        if (!drv) {
+          for (const g of [3, 2, 1]) {
+            if (g === gradeKey) continue;
+            drv = parentPool[g].find(p => !assigned.has(p.id) && !excludeSet.has(p.id) && findPersonById(p.id) && findPersonById(p.id).car) || null;
+            if (drv) break;
+          }
+        }
+        if (!drv) drv = otherPool.find(p => !assigned.has(p.id) && !excludeSet.has(p.id) && findPersonById(p.id) && findPersonById(p.id).car) || null;
+        return drv;
+      }
+
+      // フェーズ1: 実際に運転できる父兄の車の定員（4・5人乗り→4名、6〜8人乗り→6名ルール）から必要最小台数を決定
+      // 運転できる父兄がいなくなったらそこで打ち切る（運転手なしの車は絶対に作らない）
+      const tempUsed = new Set();
+      const picked = [];
+      let need = ovCount;
+      while (need > 0) {
+        const drv = findSensuDriver(tempUsed);
+        if (!drv) break;
+        tempUsed.add(drv.id);
+        const drvFull = findPersonById(drv.id);
+        const drvCarCap = drvFull && drvFull.car ? drvFull.car.capacity : 4;
+        const ruleLimit = drvCarCap >= 6 ? 6 : Math.min(drvCarCap, 4);
+        const playerSeats = Math.max(1, ruleLimit - 1);
+        picked.push({ drv, ruleLimit, playerSeats });
+        need -= playerSeats;
+      }
+
+      // フェーズ2: 決定した台数へできるだけ均等に選手を配分（各台の定員は超えない＝選手が漏れない）
+      let remaining = ovCount;
+      picked.forEach((slot, idx) => {
+        const remVehicles = picked.length - idx;
+        const sumRestSeats = picked.slice(idx + 1).reduce((s, p) => s + p.playerSeats, 0);
+        const minNeeded = Math.max(0, remaining - sumRestSeats);
+        const evenTarget = Math.ceil(remaining / remVehicles);
+        const playersInThis = Math.min(slot.playerSeats, Math.max(minNeeded, evenTarget), remaining);
+        remaining -= playersInThis;
+
+        const drv = slot.drv;
+        if (drv) assigned.add(drv.id);
+
+        // 同乗父兄: 席に余裕がある場合のみ（車なし父兄を優先して車持ち父兄を父兄号用に温存）
+        let companion = null;
+        if (playersInThis < slot.playerSeats) {
+          const hasCar = p => !!(findPersonById(p.id) && findPersonById(p.id).car);
+          const avail = p => !assigned.has(p.id) && (!drv || p.id !== drv.id);
+          companion = parentPool[gradeKey].find(p => avail(p) && !hasCar(p)) || null;
+          if (!companion) for (const g of [3, 2, 1]) { companion = parentPool[g].find(p => avail(p) && !hasCar(p)) || null; if (companion) break; }
+          if (!companion) companion = parentPool[gradeKey].find(p => avail(p)) || null;
+          if (!companion) for (const g of [3, 2, 1]) { companion = parentPool[g].find(p => avail(p)) || null; if (companion) break; }
+          if (companion) assigned.add(companion.id);
+        }
+
+        const cap = slot.ruleLimit;
+        const newV = { id: uid(), typeName: '選手号', capacity: cap, slots: Array(cap).fill(null), autoCreated: true };
+        SS.vehicles.splice(insertAt + createdCount, 0, newV);
+        createdCount++;
+
+        if (drv) newV.slots[0] = { personId: drv.id, name: drv.name, groupId: drv.groupId };
+        let si = 1;
+        if (companion) newV.slots[si++] = { personId: companion.id, name: companion.name, groupId: companion.groupId };
+        for (let pi = 0; pi < playersInThis && si < newV.slots.length; pi++, si++) {
+          const num = CN[gradeCounters[gradeName]] || String(gradeCounters[gradeName] + 1);
+          gradeCounters[gradeName]++;
+          newV.slots[si] = { personId: '__ov_' + uid(), name: gradeName + '選手' + num, grade: gradeName, groupId: '' };
+        }
+      });
+
+      // 運転できる父兄が尽きて乗せきれなかった選手は「運転手が足りません」に集める
+      for (let i = 0; i < remaining; i++) {
+        const num = CN[gradeCounters[gradeName]] || String(gradeCounters[gradeName] + 1);
+        gradeCounters[gradeName]++;
+        shortageList.push({ id: '__short_' + uid(), name: gradeName + '選手' + num, groupId: '' });
+      }
+    });
+  }
+
+  // === 父兄号の自動生成: 選手号で運転手・同乗者になっていない車持ち父兄のみ ===
+  // （先に選手号を確定させてからオーナーが空いている車だけ父兄号を作る）
+  S.groups.forEach(g => {
+    if (isStaffGroup(g) || g.isGuest || g.isPlayer) return;
+    if (!getGroupParentGrade(g)) return;
+    g.people.forEach(p => {
+      if (!attSet.has(p.id) || !p.car) return;
+      if (assigned.has(p.id)) return;
+      SS.vehicles.push({ id: uid(), typeName: '父兄号', capacity: p.car.capacity, slots: Array(p.car.capacity).fill(null), autoCreated: true, ownerPersonId: p.id });
+    });
+  });
+
+  // === 父兄号: 各車の実定員（4・5人乗り→4名、6〜8人乗り→6名ルール）から必要最小台数を決定して均等配置 ===
+  const effCapOf = v => v.capacity >= 6 ? 6 : Math.min(v.capacity, 4);
+  const fahVehicles = SS.vehicles.filter(v => v.typeName === '父兄号')
+    .sort((a, b) => effCapOf(b) - effCapOf(a) || b.capacity - a.capacity);
+  const sensuVehicles = SS.vehicles.filter(v => v.typeName === '選手号');
+  const minFahInSensu = sensuVehicles.length * 2; // 選手号1台につき最低2名の父兄分の席を残す
+  const totalAvailParents = allParents.filter(p => !assigned.has(p.id)).length;
+  const fahParentsForCal = Math.max(0, totalAvailParents - minFahInSensu);
+
+  // 必要最小台数: 実定員の大きい車から積み上げ、必要人数を満たす台数だけ使う
+  let activeFahCount = 0, cumCap = 0;
+  while (activeFahCount < fahVehicles.length && cumCap < fahParentsForCal) {
+    cumCap += effCapOf(fahVehicles[activeFahCount]);
+    activeFahCount++;
+  }
+
+  let fahIdx = 0;
+  fahVehicles.forEach((v, vi) => {
+    if (vi >= activeFahCount) return; // 不要な台はスキップ→後で削除
+    const remParents = allParents.filter(p => !assigned.has(p.id)).length;
+    const remFah = activeFahCount - fahIdx;
+    const sumRestCap = fahVehicles.slice(vi + 1, activeFahCount).reduce((s, vv) => s + effCapOf(vv), 0);
+    const minNeeded = Math.max(0, remParents - sumRestCap);
+    const evenTarget = remFah > 0 ? Math.ceil(remParents / remFah) : effCapOf(v);
+    const lim = Math.min(effCapOf(v), Math.max(minNeeded, evenTarget, 1));
+    fahIdx++;
     const gcounts = { 3: parentPool[3].filter(p => !assigned.has(p.id)).length, 2: parentPool[2].filter(p => !assigned.has(p.id)).length, 1: parentPool[1].filter(p => !assigned.has(p.id)).length };
     const primaryGrade = [3, 2, 1].reduce((best, gr) => gcounts[gr] > gcounts[best] ? gr : best, 3);
-    let drv = getDriver('父兄号');
+    let drv = null;
+    if (v.ownerPersonId && !assigned.has(v.ownerPersonId)) {
+      const op = findPersonById(v.ownerPersonId);
+      if (op && attSet.has(v.ownerPersonId)) drv = op;
+    }
+    if (!drv) drv = getDriver('父兄号', true);
     let driverGrade = primaryGrade;
     if (drv) {
       v.slots[0] = { personId: drv.id, name: drv.name, groupId: drv.groupId }; assigned.add(drv.id);
       driverGrade = [3, 2, 1].find(gr => parentPool[gr].some(p => p.id === drv.id)) || primaryGrade;
     } else {
-      const primaryPool = parentPool[primaryGrade].filter(p => !assigned.has(p.id));
-      if (primaryPool.length > 0) {
-        const fp = primaryPool[0]; v.slots[0] = { personId: fp.id, name: fp.name, groupId: fp.groupId }; assigned.add(fp.id);
+      const pp2 = parentPool[primaryGrade].filter(p => !assigned.has(p.id) && findPersonById(p.id) && findPersonById(p.id).car);
+      if (pp2.length > 0) {
+        const fp = pp2[0]; v.slots[0] = { personId: fp.id, name: fp.name, groupId: fp.groupId }; assigned.add(fp.id);
       } else {
-        const anyP = allParents.find(p => !assigned.has(p.id));
+        const anyP = [...allParents, ...otherPool].find(p => !assigned.has(p.id) && findPersonById(p.id) && findPersonById(p.id).car);
         if (anyP) { v.slots[0] = { personId: anyP.id, name: anyP.name, groupId: anyP.groupId }; assigned.add(anyP.id); driverGrade = anyP.parentGrade || primaryGrade; }
       }
     }
+    if (!v.slots[0]) return; // 運転手が見つからない車には人を乗せない（後で自動削除される）
     const sameGrade = parentPool[driverGrade].filter(p => !assigned.has(p.id));
     const otherGrades = [3, 2, 1].filter(gr => gr !== driverGrade).flatMap(gr => parentPool[gr].filter(p => !assigned.has(p.id)));
-    fillSlots(v, [...sameGrade, ...otherGrades], lim);
+    fillSlots(v, carLessFirst([...sameGrade, ...otherGrades]), lim);
   });
 
-  SS.vehicles.filter(v => v.typeName === '選手号').forEach(v => {
-    let drv = getDriver('選手号');
+  // ⑤1: 残り父兄を選手号の空き席に配置（車を持つ父兄は温存し、車なし父兄を優先）
+  const leftoverParents = allParents.filter(p => !assigned.has(p.id));
+  if (leftoverParents.length > 0) {
+    sensuVehicles.forEach(sv => {
+      fillSlots(sv, carLessFirst(allParents.filter(p => !assigned.has(p.id))), sv.capacity >= 6 ? 6 : Math.min(sv.capacity, 4));
+    });
+  }
+  // ⑤2: それでも残っていれば、未使用の父兄号を実定員まで均等に追加投入（安全弁）
+  {
+    const stillLeft = allParents.filter(p => !assigned.has(p.id));
+    if (stillLeft.length > 0) {
+      const unused = fahVehicles.slice(activeFahCount);
+      unused.forEach((vFah, i) => {
+        const remP = allParents.filter(p => !assigned.has(p.id)).length;
+        if (remP <= 0) return;
+        const remV = unused.length - i;
+        const sumRestCap2 = unused.slice(i + 1).reduce((s, vv) => s + effCapOf(vv), 0);
+        const minNeeded2 = Math.max(0, remP - sumRestCap2);
+        const evenT = remV > 0 ? Math.ceil(remP / remV) : effCapOf(vFah);
+        const lim2 = Math.min(effCapOf(vFah), Math.max(minNeeded2, evenT));
+        let drv2 = null;
+        if (vFah.ownerPersonId && !assigned.has(vFah.ownerPersonId)) {
+          const op2 = findPersonById(vFah.ownerPersonId);
+          if (op2 && attSet.has(vFah.ownerPersonId)) drv2 = op2;
+        }
+        if (!drv2) {
+          const anyP2 = [...allParents, ...otherPool].find(p => !assigned.has(p.id) && findPersonById(p.id) && findPersonById(p.id).car);
+          if (anyP2) drv2 = anyP2;
+        }
+        if (drv2) { vFah.slots[0] = { personId: drv2.id, name: drv2.name, groupId: drv2.groupId }; assigned.add(drv2.id); }
+        if (!vFah.slots[0]) return; // 運転手が見つからない車には人を乗せない（後で自動削除される）
+        const remPool = carLessFirst(allParents.filter(p => !assigned.has(p.id)));
+        fillSlots(vFah, remPool, lim2);
+      });
+    }
+  }
+
+  // 運転できる父兄が尽きて父兄号にも選手号にも乗せきれなかった父兄は「運転手が足りません」に集める
+  allParents.filter(p => !assigned.has(p.id)).forEach(p => {
+    shortageList.push({ id: p.id, name: p.name, groupId: p.groupId });
+    assigned.add(p.id);
+  });
+
+  // === 既存の選手号: 個人選手カードを配置 ===
+  SS.vehicles.filter(v => v.typeName === '選手号' && !v.autoCreated).forEach(v => {
+    let drv = getDriver('選手号', true);
     if (!drv) {
-      const grades = [3, 2, 1];
-      for (const gr of grades) {
-        drv = parentPool[gr].find(p => !assigned.has(p.id)) || null;
+      for (const gr of [3, 2, 1]) {
+        drv = parentPool[gr].find(p => !assigned.has(p.id) && findPersonById(p.id) && findPersonById(p.id).car) || null;
         if (drv) break;
       }
     }
+    if (!drv) drv = otherPool.find(p => !assigned.has(p.id) && findPersonById(p.id) && findPersonById(p.id).car) || null;
     if (drv) { v.slots[0] = { personId: drv.id, name: drv.name, groupId: drv.groupId }; assigned.add(drv.id); }
-    const lim = v.capacity >= 7 ? 6 : v.capacity;
+    const lim = v.capacity >= 6 ? 6 : Math.min(v.capacity, 4);
     const pg = S.groups.find(g => g.isPlayer);
     const playerCards = (pg ? pg.people : []).filter(p => !assigned.has(p.id));
-    fillSlots(v, playerCards.map(p => ({ id: p.id, name: p.name, groupId: pg.id })), lim);
+    fillSlots(v, playerCards.map(p => ({ id: p.id, name: p.name, groupId: pg ? pg.id : '' })), lim);
   });
+
+  // 運転手不足で乗せきれなかった人がいれば、警告用の特殊車両にまとめて配置
+  SS.vehicles = SS.vehicles.filter(v => v.typeName !== DRIVER_SHORTAGE_TYPE);
+  if (shortageList.length > 0) {
+    SS.vehicles.push({
+      id: uid(),
+      typeName: DRIVER_SHORTAGE_TYPE,
+      capacity: shortageList.length,
+      slots: shortageList.map(p => ({ personId: p.id, name: p.name, groupId: p.groupId })),
+      autoCreated: true
+    });
+  }
+
+  // 空の自動生成車両を削除
+  SS.vehicles = SS.vehicles.filter(v => !v.autoCreated || v.slots.some(s => s));
 
   saveAll();
   showScreen('app');
   renderAll();
-  toast('自動配車が完了しました！手動で調整できます。');
+  if (shortageList.length > 0) {
+    toast('自動配車が完了しました。運転手が足りず乗せきれない人がいます。');
+  } else {
+    toast('自動配車が完了しました！手動で調整できます。');
+  }
 }
 
 /* ========== Settings ========== */
@@ -1541,7 +2222,7 @@ function renderSettings() {
 
   if (view === 'menu') {
     titleEl.textContent = '設定画面';
-    [{ l: 'グループ設定', t: 'groups' }, { l: '運転手優先順位', t: 'driverPriority' }, { l: '使い方ガイド', t: 'guide' }].forEach(item => {
+    [{ l: 'グループ設定', t: 'groups' }, { l: '運転手優先順位', t: 'driverPriority' }, { l: '配車順設定', t: 'vehicleOrder' }, { l: '使い方ガイド', t: 'guide' }].forEach(item => {
       const el = document.createElement('div');
       el.className = 's-menu-item';
       el.innerHTML = '<span>' + item.l + '</span><span class="arrow">›</span>';
@@ -1633,6 +2314,44 @@ function renderSettings() {
       el.innerHTML = '<span>' + vehicleIcon(vl.name) + ' ' + esc(vl.name) + '</span><span style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;color:var(--text-faint)">' + priority.length + '名登録</span><span class="arrow">›</span></span>';
       el.onclick = () => { sStack.push({ v: 'dpType', typeName: vl.name }); renderSettings(); };
       body.appendChild(el);
+    });
+
+  } else if (view === 'vehicleOrder') {
+    titleEl.textContent = '配車順設定';
+    const note = document.createElement('div');
+    note.className = 's-note';
+    note.textContent = '配車画面での車種の並び順を設定します。↑↓ボタンで順番を変更できます。この順は選択バーにも反映されます。';
+    body.appendChild(note);
+    const iconFor = t => { const sp = FIXED_VEHICLE_SPECS[t]; return sp ? sp.icon : (t === '選手号' ? '🏃' : t === '父兄号' ? '👪' : '🚗'); };
+    const moveOrder = (from, to) => {
+      const arr = S.vehicleOrder;
+      const item = arr.splice(from, 1)[0];
+      arr.splice(to, 0, item);
+      saveS(); renderSettings();
+    };
+    S.vehicleOrder.forEach((typeName, i) => {
+      const row = document.createElement('div');
+      row.className = 's-list-item';
+      const nm = document.createElement('span');
+      nm.className = 'item-name';
+      nm.textContent = iconFor(typeName) + ' ' + typeName;
+      row.appendChild(nm);
+      const acts = document.createElement('div');
+      acts.className = 'item-actions';
+      if (i > 0) {
+        const up = document.createElement('button');
+        up.className = 's-btn-edit'; up.textContent = '↑';
+        up.onclick = () => moveOrder(i, i - 1);
+        acts.appendChild(up);
+      }
+      if (i < S.vehicleOrder.length - 1) {
+        const dn = document.createElement('button');
+        dn.className = 's-btn-edit'; dn.textContent = '↓';
+        dn.onclick = () => moveOrder(i, i + 1);
+        acts.appendChild(dn);
+      }
+      row.appendChild(acts);
+      body.appendChild(row);
     });
 
   } else if (view === 'managerList') {
@@ -1837,6 +2556,12 @@ function renderSettings() {
       };
       acts.appendChild(eb);
 
+      const carBtn = document.createElement('button');
+      carBtn.className = 's-btn-car' + (p.car ? ' has-car' : '');
+      carBtn.textContent = p.car ? '🚗 ' + p.car.capacity + '人' : '🚗';
+      carBtn.onclick = () => setPersonCar(p);
+      acts.appendChild(carBtn);
+
       const db = document.createElement('button');
       db.className = 's-btn-delete'; db.textContent = '削除';
       db.onclick = async () => {
@@ -1868,7 +2593,8 @@ function renderSettings() {
 const VEHICLE_ICONS = {
   'チームトラック': '\u{1F69A}', 'チームバス': '\u{1F68C}', '軽トラ': '\u{1F69B}',
   '選手号': '\u{1F697}', '父兄号': '\u{1F699}', '道具車': '\u{1F6FB}',
-  'フロント号': '\u{1F695}', '審判支援号': '\u{1F698}'
+  'フロント号': '\u{1F695}', '審判支援号': '\u{1F698}',
+  '運転手が足りません': '\u{26A0}\u{FE0F}'
 };
 
 function vehicleIcon(name) {
@@ -1887,8 +2613,15 @@ function genText() {
   const lines = [title + 'の配車です。', ''];
   const pg = S.groups.find(g => g.isPlayer);
 
-  // 残席数＝バスの選手席数。3年→2年→1年の順で埋める
-  let rem = parseInt(SS.playerSeats) || 0;
+  // バスが存在する場合は実際の乗員数から選手席数を自動計算
+  const busVG = SS.vehicles.find(v => v.typeName === 'チームバス');
+  let rem;
+  if (busVG) {
+    const busOccG = busVG.slots.filter(s => s && !s.isDummy).length;
+    rem = Math.max(0, busVG.capacity - busOccG);
+  } else {
+    rem = parseInt(SS.playerSeats) || 0;
+  }
   const y3 = parseInt(SS.counts.y3) || 0;
   const y2 = parseInt(SS.counts.y2) || 0;
   const y1 = parseInt(SS.counts.y1) || 0;
@@ -1902,22 +2635,21 @@ function genText() {
     const lbl = vehicleLabel(v);
     const baseName = v.typeName;
     const isBus = baseName.indexOf('バス') !== -1;
+    const isShortage = v.typeName === DRIVER_SHORTAGE_TYPE;
     const icon = vehicleIcon(baseName);
     const people = [];
     const gradeNames = {};
     let driver = null;
 
     v.slots.forEach((s, i) => {
-      if (!s) return;
-      if (pg) {
-        const pp = pg.people.find(p => p.id === s.personId);
-        if (pp && pp.grade) {
-          if (!gradeNames[pp.grade]) gradeNames[pp.grade] = [];
-          gradeNames[pp.grade].push(s.name);
-          return;
-        }
+      if (!s || s.isDummy) return;
+      const grade = s.grade || (pg ? (pg.people.find(p => p.id === s.personId) || {}).grade : null);
+      if (grade) {
+        if (!gradeNames[grade]) gradeNames[grade] = [];
+        gradeNames[grade].push(s.name);
+        return;
       }
-      if (i === 0) driver = s.name;
+      if (i === 0 && !isShortage) driver = s.name;
       else people.push(s.name);
     });
 
@@ -1945,9 +2677,9 @@ function genText() {
         lines.push(all.slice(i, i + 2).join('　'));
       }
       const gp = [];
-      if (gradeNames[3]) gp.push('3年選手' + gradeNames[3].length + '人');
-      if (gradeNames[2]) gp.push('2年選手' + gradeNames[2].length + '人');
-      if (gradeNames[1]) gp.push('1年選手' + gradeNames[1].length + '人');
+      if (gradeNames['3年']) gp.push('3年選手' + gradeNames['3年'].length + '人');
+      if (gradeNames['2年']) gp.push('2年選手' + gradeNames['2年'].length + '人');
+      if (gradeNames['1年']) gp.push('1年選手' + gradeNames['1年'].length + '人');
       if (gp.length) lines.push(gp.join('　'));
     }
     lines.push('');
@@ -1974,7 +2706,23 @@ async function doReset() {
 /* ========== Event Listeners ========== */
 $('btnReset').onclick = doReset;
 $('btnSettings').onclick = openSettings;
-$('btnDecide').onclick = () => { $('output-text').value = genText(); showScreen('output'); };
+$('btnDecide').onclick = () => {
+  const missing = SS.vehicles.filter(v => v.typeName !== DRIVER_SHORTAGE_TYPE && !(v.slots[0] && v.slots[0].personId !== DUMMY_PID));
+  if (missing.length > 0) {
+    const list = $('driver-warn-list');
+    list.innerHTML = '';
+    missing.forEach(v => {
+      const item = document.createElement('div');
+      item.className = 'drv-warn-item';
+      item.textContent = vehicleLabel(v) + ' の運転手が配置されていません';
+      list.appendChild(item);
+    });
+    $('driver-warn-modal').classList.add('show');
+    return;
+  }
+  $('output-text').value = genText(); showScreen('output');
+};
+$('btnWarnClose').onclick = () => { $('driver-warn-modal').classList.remove('show'); };
 
 $('settingsBack').onclick = () => {
   if (sStack.length > 1) { sStack.pop(); renderSettings(); }
@@ -1994,10 +2742,6 @@ $('outputCopyBtn').onclick = async () => {
 };
 
 $('titleInput').oninput = e => { SS.title = e.target.value; saveSS(); };
-
-$('togTruck').onclick = () => toggleFixedVehicle('チームトラック', 2);
-$('togBus').onclick = () => toggleFixedVehicle('チームバス', 25);
-$('togKei').onclick = () => toggleFixedVehicle('軽トラ', 2);
 
 $('btnAutoAssign').onclick = openAttendance;
 $('attBack').onclick = () => showScreen('app');
