@@ -2227,11 +2227,11 @@ function renderSettings() {
 
   if (view === 'menu') {
     titleEl.textContent = '設定画面';
-    [{ l: 'グループ設定', t: 'groups' }, { l: '運転手優先順位', t: 'driverPriority' }, { l: '配車順設定', t: 'vehicleOrder' }, { l: '使い方ガイド', t: 'guide' }].forEach(item => {
+    [{ l: 'グループ設定', t: 'groups' }, { l: '運転手優先順位', t: 'driverPriority' }, { l: '配車順設定', t: 'vehicleOrder' }, { l: '使い方ガイド', t: 'guide' }, { l: '最新版を確認', action: checkForUpdate }].forEach(item => {
       const el = document.createElement('div');
       el.className = 's-menu-item';
-      el.innerHTML = '<span>' + item.l + '</span><span class="arrow">›</span>';
-      el.onclick = () => { sStack.push(item.t); renderSettings(); };
+      el.innerHTML = '<span>' + item.l + '</span><span class="arrow">' + (item.action ? '⟳' : '›') + '</span>';
+      el.onclick = () => { if (item.action) item.action(); else { sStack.push(item.t); renderSettings(); } };
       body.appendChild(el);
     });
 
@@ -2775,7 +2775,29 @@ load();
 loadCardsHeight();
 renderAll();
 initCardsResize();
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+let swReloading = false;
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (swReloading) return;
+    swReloading = true;
+    location.reload();
+  });
+}
+
+async function checkForUpdate() {
+  if (!('serviceWorker' in navigator)) { toast('このブラウザでは利用できません'); return; }
+  const reg = await navigator.serviceWorker.getRegistration();
+  if (!reg) { location.reload(); return; }
+  toast('最新版を確認しています…');
+  try {
+    await reg.update();
+  } catch {
+    toast('確認に失敗しました。通信状況をご確認ください');
+    return;
+  }
+  setTimeout(() => { if (!swReloading) toast('最新の状態です'); }, 1500);
+}
 </script>
 </body>
 </html>
