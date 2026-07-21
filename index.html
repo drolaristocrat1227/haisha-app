@@ -199,7 +199,7 @@ button{cursor:pointer;border:none;background:none;outline:none}
 .ftc{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;border:2px solid var(--border-soft);border-radius:10px;background:var(--surface-alt);overflow:hidden;min-width:56px;max-width:72px;cursor:pointer;position:relative}
 .ftc.on{border-color:var(--primary);background:var(--primary-tint)}
 .ftc-toggle{display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 4px 4px;width:100%;text-align:center}
-.ftc-icon{font-size:18px;line-height:1}
+.ftc-icon{font-size:18px;line-height:1;font-weight:800;color:var(--primary-dark)}
 .ftc-label{font-size:9px;font-weight:700;color:var(--text-faint);line-height:1.3;text-align:center}
 .ftc.on .ftc-label{color:var(--primary-dark)}
 .ftc-x{position:absolute;top:2px;right:2px;font-size:10px;line-height:1;padding:2px 3px;background:rgba(0,0,0,.08);border-radius:4px;color:var(--text-soft);z-index:1}
@@ -1621,8 +1621,8 @@ const FIXED_VEHICLE_SPECS = {
   'チームバス':     { icon: '🚌', cap: 25, capFixed: false, capMin: 5,  capMax: 60 },
   '軽トラ':         { icon: '🚐', cap: 2,  capFixed: false, capMin: 1,  capMax: 2  },
   '道具車':         { icon: '🎒', cap: 2,  capFixed: false, capMin: 1,  capMax: 8,  needsPeople: true },
-  'フロント号':     { icon: '机', cap: 8,  capFixed: true,  capMin: 8,  capMax: 8,  needsPeople: true },
-  '審判支援号':     { icon: '⚾', cap: 8,  capFixed: true,  capMin: 8,  capMax: 8,  needsPeople: true },
+  'フロント号':     { icon: 'フ', cap: 8,  capFixed: true,  capMin: 8,  capMax: 8,  needsPeople: true },
+  '審判支援号':     { icon: '審', cap: 8,  capFixed: true,  capMin: 8,  capMax: 8,  needsPeople: true },
 };
 const FIXED_VEHICLE_ORDER = ['チームトラック', 'チームバス', '軽トラ', '道具車', 'フロント号', '審判支援号'];
 const DUMMY_PID = '__dummy__';
@@ -2593,7 +2593,7 @@ function renderSettings() {
 const VEHICLE_ICONS = {
   'チームトラック': '\u{1F69A}', 'チームバス': '\u{1F68C}', '軽トラ': '\u{1F69B}',
   '選手号': '\u{1F697}', '父兄号': '\u{1F699}', '道具車': '\u{1F392}',
-  'フロント号': '机', '審判支援号': '\u{26BE}',
+  'フロント号': 'フ', '審判支援号': '審',
   '運転手が足りません': '\u{26A0}\u{FE0F}'
 };
 
