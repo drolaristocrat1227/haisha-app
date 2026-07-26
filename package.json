@@ -1,0 +1,12 @@
+{
+  "name": "haisha-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "スポーツチーム向けの配車管理PWA（index.html 1枚で動きます）",
+  "scripts": {
+    "test": "node tests/run-tests.js"
+  },
+  "devDependencies": {
+    "jsdom": "^29.1.1"
+  }
+}
